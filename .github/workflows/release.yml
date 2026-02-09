@@ -34,9 +34,19 @@ jobs:
       - name: Build Shadow JAR
         run: ./gradlew :bbrun-cli:shadowJar --no-daemon
 
+      - name: List built JARs
+        run: |
+          echo "Contents of bbrun-cli/build/libs/:"
+          ls -la bbrun-cli/build/libs/ || echo "Directory not found!"
+
       - name: Build native image
         run: |
-          JAR_FILE=$(ls bbrun-cli/build/libs/*-all.jar | head -1)
+          JAR_FILE=$(find bbrun-cli/build/libs -name "*-all.jar" -type f | head -1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "ERROR: No shadow JAR found!"
+            ls -laR bbrun-cli/build/
+            exit 1
+          fi
           echo "Building native image from: $JAR_FILE"
           native-image \
             --no-fallback \
