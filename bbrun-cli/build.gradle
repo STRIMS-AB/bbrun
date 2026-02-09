@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    implementation project(':bbrun-lib')
+    api project(':bbrun-lib')
 
     // CLI framework
     implementation 'info.picocli:picocli:4.7.5'
