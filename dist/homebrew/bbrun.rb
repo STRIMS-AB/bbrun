@@ -5,16 +5,16 @@
 class Bbrun < Formula
   desc "HTTP API testing DSL - write expressive API tests"
   homepage "https://github.com/STRIMS-AB/bbrun"
-  version "0.1.0"
+  version "0.1.1"
   license "MIT"
 
   url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-#{version}.tar.gz"
-  sha256 "d8cff34b0983cbcd34e8e9d0b0c249369c78ce2414612d85178892685da60bad"
+  sha256 "dfd9809d3506429f9965d9ce63cd3fe0ff77ee2027fb77d894b08b2f2c02ccf1"
 
   depends_on "openjdk@17"
 
   def install
-    # The tarball extracts to bbrun-0.1.0/ which contains bin/ and lib/
+    # The tarball extracts to bbrun-0.1.1/ which contains bin/ and lib/
     # Install everything to libexec, preserving the structure
     libexec.install Dir["*"]
     
