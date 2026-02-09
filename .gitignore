@@ -9,6 +9,9 @@ build/
 .vscode/
 *.swp
 
+# Spec
+spec/
+
 # OS
 .DS_Store
 Thumbs.db
