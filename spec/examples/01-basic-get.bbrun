@@ -1,0 +1,13 @@
+// 01-basic-get.bbrun
+// The simplest bbrun script: fetch a URL and print the response
+
+baseUrl "https://api.example.com"
+
+get #users
+
+// The response is automatically available as `response`
+print response.status      // 200
+print response.body        // JSON or text content
+
+// Full URL still works for external endpoints
+get "https://other-api.com/health"

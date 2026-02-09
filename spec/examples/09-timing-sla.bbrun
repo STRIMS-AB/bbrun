@@ -1,0 +1,64 @@
+// 09-timing-sla.bbrun
+// Performance and SLA checks
+
+baseUrl "https://api.example.com"
+
+// ============================================
+// Basic timing assertions
+// ============================================
+
+get #health
+
+// response.time contains the request duration in milliseconds
+assert response.time < 100 : "Health check must respond in < 100ms"
+
+get #users
+
+// Warning for slower (but acceptable) responses
+warn response.time < 500 : "Users endpoint is slow (${response.time}ms)"
+
+// ============================================
+// SLA definitions for different endpoints
+// ============================================
+
+// Define SLA thresholds
+let sla = {
+    "critical": 100,    // Health checks, auth
+    "standard": 500,    // Normal CRUD operations  
+    "slow": 2000        // Reports, exports
+}
+
+// Critical path — must be fast
+post credentials to #auth/login
+assert response.time < sla.critical : "Login SLA breach: ${response.time}ms"
+
+// Standard operations
+get #users with bearer token
+assert response.time < sla.standard : "Users list SLA breach"
+
+get #users/${userId}/orders with bearer token
+warn response.time < sla.standard : "Orders query slower than SLA"
+
+// Slow operations (expected to take longer)
+get #reports/monthly with bearer token
+assert response.time < sla.slow : "Report generation too slow"
+
+// ============================================
+// Percentile tracking (for repeated calls)
+// ============================================
+
+// Run multiple requests to check consistency
+repeat 10 {
+    get #users/1
+    
+    // Each iteration's time is available
+    assert response.time < 500
+}
+
+// After repeat block, timing stats are available
+print timing.avg        // average response time
+print timing.p95        // 95th percentile
+print timing.max        // slowest request
+
+assert timing.p95 < 300 : "P95 latency too high"
+warn timing.max < 500 : "Max latency spike detected"

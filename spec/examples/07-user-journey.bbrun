@@ -1,0 +1,64 @@
+// 07-user-journey.bbrun
+// Complete user journey: signup → login → use app → cleanup
+
+baseUrl env("API_BASE_URL", "https://api.example.com")
+
+let testEmail = "test-${timestamp()}@example.com"
+
+// ============================================
+// Step 1: Registration
+// ============================================
+print "=== Step 1: Registration ==="
+
+let newUser = {
+    "email": testEmail,
+    "password": "SecurePass123!",
+    "name": "Test User"
+}
+
+post newUser to #auth/register
+let userId = response.body.id
+print "Registered user: ${userId}"
+
+// ============================================
+// Step 2: Login (sets implicit auth)
+// ============================================
+print "=== Step 2: Login ==="
+
+let credentials = {
+    "email": testEmail,
+    "password": "SecurePass123!"
+}
+
+post credentials to #auth/login
+auth bearer response.body.accessToken    // All subsequent requests are authenticated
+print "Logged in"
+
+// ============================================
+// Step 3: Use the App (no 'with bearer token' needed)
+// ============================================
+print "=== Step 3: Using the App ==="
+
+get #me
+assert response.body.email == testEmail
+
+let item = {
+    "name": "My First Item",
+    "description": "Created during journey test"
+}
+
+post item to #items
+let itemId = response.body.id
+
+get #items
+assert response.body contains { "id": itemId }
+
+// ============================================
+// Step 4: Cleanup
+// ============================================
+print "=== Step 4: Cleanup ==="
+
+delete #items/${itemId}
+delete #users/${userId}
+
+print "=== Journey Complete ==="

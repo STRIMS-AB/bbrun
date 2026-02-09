@@ -1,0 +1,58 @@
+// 05-assertions.bbrun
+// Response validation with assertions
+
+baseUrl "https://api.example.com"
+
+// Non-2xx responses automatically fail — no need to assert status
+get #users/1
+
+// ============================================
+// ASSERT: Stops execution immediately on failure
+// ============================================
+
+assert response.body.id != null
+assert response.body.email != null
+
+// ============================================
+// WARN: Collects warnings, shown at end
+// ============================================
+
+warn response.body.verified == true : "User should be verified"
+warn response.body.profile.avatar != null : "User missing avatar"
+
+// ============================================
+// Type checks
+// ============================================
+assert response.body.age is number
+assert response.body.active is boolean
+assert response.body.tags is array
+assert response.body.profile is object
+assert response.body.name is string
+
+// ============================================
+// Format validators (built-in patterns)
+// ============================================
+assert response.body.email is email
+assert response.body.website is url
+assert response.body.id is uuid
+assert response.body.createdAt is datetime
+assert response.body.phone is phone
+assert response.body.ip is ipv4
+
+// ============================================
+// Custom pattern matching (regex in quotes)
+// ============================================
+assert response.body.code is "[A-Z]{3}-\\d{4}"         // e.g., ABC-1234
+assert response.body.postalCode is "\\d{5}(-\\d{4})?"
+
+// ============================================
+// Content assertions
+// ============================================
+assert response.body.tags contains "user"
+assert response.body.roles not contains "banned"
+warn response.body.tags.length > 1 : "User has only one tag"
+
+// At end of execution, warnings are summarized:
+// ⚠ 2 warnings:
+//   - User should be verified (line 20)
+//   - User missing avatar (line 21)

@@ -1,0 +1,53 @@
+// _init.bbrun
+// Auto-runs before EACH test, with cleanup after
+
+baseUrl env("API_BASE_URL", "https://api.example.com")
+
+// ============================================
+// Setup: runs BEFORE each test
+// ============================================
+
+// Track resources created during tests for cleanup
+let _cleanup = []
+
+macro login(email, password) {
+    post { "email": email, "password": password } to #auth/login
+    return response.body.accessToken
+}
+
+macro createTestUser(name) {
+    let email = "test-${timestamp()}@example.com"
+    post { "name": name, "email": email } to #users
+    
+    // Register for cleanup
+    _cleanup.push({ "type": "user", "id": response.body.id })
+    
+    return response.body
+}
+
+macro createTestItem(name) {
+    post { "name": name } to #items with bearer token
+    
+    _cleanup.push({ "type": "item", "id": response.body.id })
+    
+    return response.body
+}
+
+// ============================================
+// Cleanup: runs AFTER each test (even on failure)
+// ============================================
+
+cleanup {
+    // Iterate in reverse order (LIFO)
+    for resource in _cleanup.reverse() {
+        expect 404 {
+            if resource.type == "user" {
+                delete #users/${resource.id} with bearer token
+            } else if resource.type == "item" {
+                delete #items/${resource.id} with bearer token
+            }
+        }
+    }
+    
+    print "Cleaned up ${_cleanup.length} resources"
+}

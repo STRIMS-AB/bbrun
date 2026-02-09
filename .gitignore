@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ANTLR Generated
+bbrun-lib/build/generated-src/
+
+# Test files
+test.bbrun
+*.log
+
+# Native image
+bbrun
+*.exe

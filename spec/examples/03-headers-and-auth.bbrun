@@ -1,0 +1,22 @@
+// 03-headers-and-auth.bbrun
+// Custom headers and authentication
+
+baseUrl "https://api.example.com"
+
+// Headers with a "with headers" clause
+get #me with headers {
+    "Authorization": "Bearer my-secret-token",
+    "Accept": "application/json"
+}
+
+print response.body.username
+
+// Cleaner: use auth shorthand
+get #me with bearer "my-secret-token"
+
+// Basic auth
+get #private with basic "username" "password"
+
+// Combining body and auth
+let payload = { "action": "update" }
+post payload to #actions with bearer token

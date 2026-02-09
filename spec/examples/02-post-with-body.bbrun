@@ -1,0 +1,19 @@
+// 02-post-with-body.bbrun
+// POST request with a JSON body
+
+baseUrl "https://api.example.com"
+
+// Create the object, then post it — body is implicit
+let user = {
+    "name": "Alice",
+    "email": "alice@example.com",
+    "age": 30
+}
+
+post user to #users
+
+print response.status      // 201
+print response.body.id     // newly created user ID
+
+// Or inline:
+post { "name": "Bob" } to #users

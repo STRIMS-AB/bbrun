@@ -1,0 +1,46 @@
+// 06-conditionals.bbrun
+// Control flow with if/else for complex scenarios
+
+baseUrl "https://api.example.com"
+
+// ============================================
+// Handling expected errors with "expect"
+// ============================================
+
+// Use "expect" when you anticipate a non-2xx response
+expect 404 {
+    get #users/search?email=alice@example.com
+}
+
+// After expect block, check what happened
+if response.status == 200 {
+    let userId = response.body.id
+    print "User already exists with ID: ${userId}"
+} else {
+    // 404 — user doesn't exist, create them
+    let newUser = { "email": "alice@example.com", "name": "Alice" }
+    post newUser to #users
+    let userId = response.body.id
+    print "Created new user with ID: ${userId}"
+}
+
+// ============================================
+// Conditional based on response data
+// ============================================
+get #users/1
+let user = response.body
+
+if user.role == "admin" {
+    get #admin/dashboard
+} else {
+    get #user/dashboard
+}
+
+// Boolean conditions
+if user.active and user.verified {
+    print "User is ready"
+}
+
+if not user.banned or user.role == "admin" {
+    print "User can access the system"
+}

@@ -1,0 +1,25 @@
+// 04-variables.bbrun
+// Variables and string interpolation
+
+baseUrl "https://api.example.com"
+
+// Declare variables
+let token = "my-secret-token"
+let userId = 42
+
+// Use variables in paths (string interpolation with ${})
+get #users/${userId} with bearer token
+
+// Store response data in variables
+let user = response.body
+print user.name
+
+// Environment variables (from system or .env file)
+let apiKey = env("API_KEY")
+let environment = env("ENV", "development")  // with default
+
+// Computed values
+let fullName = user.firstName + " " + user.lastName
+
+// Full URL for external call
+get "https://other-service.com/status"

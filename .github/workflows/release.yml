@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-native:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: ubuntu-24.04-arm64
+            platform: linux-aarch64
+          - os: macos-13
+            platform: macos-x64
+          - os: macos-latest
+            platform: macos-aarch64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "21"
+          distribution: "graalvm"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build JAR
+        run: ./gradlew :bbrun-cli:shadowJar --no-daemon
+
+      - name: Build native image
+        run: |
+          native-image \
+            --no-fallback \
+            -H:+ReportExceptionStackTraces \
+            -H:ReflectionConfigurationFiles=bbrun-cli/src/main/resources/META-INF/native-image/reflect-config.json \
+            -jar bbrun-cli/build/libs/bbrun-cli-*-all.jar \
+            -o bbrun
+
+      - name: Package
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mkdir -p dist-out
+          mv bbrun dist-out/
+          cd dist-out
+          tar -czvf bbrun-${VERSION}-${{ matrix.platform }}.tar.gz bbrun
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bbrun-${{ matrix.platform }}
+          path: dist-out/*.tar.gz
+
+  release:
+    needs: build-native
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

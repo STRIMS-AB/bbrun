@@ -1,0 +1,96 @@
+// 12-oauth.bbrun
+// Built-in OAuth support
+
+baseUrl "https://api.example.com"
+
+// ============================================
+// OAuth configuration (in _init.bbrun typically)
+// ============================================
+
+// Client credentials flow (machine-to-machine)
+oauth clientCredentials {
+    tokenUrl: "https://auth.example.com/oauth/token",
+    clientId: env("CLIENT_ID"),
+    clientSecret: env("CLIENT_SECRET"),
+    scope: "read write"
+}
+
+// All subsequent requests automatically include the bearer token
+get #users          // Authorization: Bearer <token> added automatically
+get #items
+post item to #orders
+
+// ============================================
+// Other OAuth flows
+// ============================================
+
+// Password grant (for testing with user credentials)
+oauth password {
+    tokenUrl: "https://auth.example.com/oauth/token",
+    clientId: env("CLIENT_ID"),
+    username: "test@example.com",
+    password: env("TEST_PASSWORD")
+}
+
+// Authorization code (interactive, for manual testing)
+oauth authorizationCode {
+    authorizeUrl: "https://auth.example.com/authorize",
+    tokenUrl: "https://auth.example.com/oauth/token",
+    clientId: env("CLIENT_ID"),
+    redirectUri: "http://localhost:8080/callback"
+}
+
+// ============================================
+// Simple bearer token (when you have it already)
+// ============================================
+
+// Set once, used everywhere
+auth bearer env("API_TOKEN")
+
+get #users          // Token included automatically
+post user to #users // Token included automatically
+
+// ============================================
+// Basic auth (also implicit after set)
+// ============================================
+
+auth basic env("API_USER") env("API_PASS")
+
+get #private        // Basic auth header added automatically
+
+// ============================================
+// API key
+// ============================================
+
+auth apiKey {
+    header: "X-API-Key",
+    value: env("API_KEY")
+}
+
+get #data           // X-API-Key header added automatically
+
+// ============================================
+// Switching auth contexts
+// ============================================
+
+// Named auth configurations
+auth "admin" bearer adminToken
+auth "user" bearer userToken
+
+// Use specific auth for a request
+get #admin/settings using "admin"
+get #profile using "user"
+
+// Temporary no-auth for public endpoints
+get #public/health without auth
+
+// ============================================
+// Token refresh (automatic)
+// ============================================
+
+oauth clientCredentials {
+    tokenUrl: "https://auth.example.com/oauth/token",
+    clientId: env("CLIENT_ID"),
+    clientSecret: env("CLIENT_SECRET"),
+    autoRefresh: true   // Refresh before expiry automatically
+}

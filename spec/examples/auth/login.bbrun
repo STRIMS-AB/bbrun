@@ -1,0 +1,13 @@
+// auth/login.bbrun
+// Reusable login script
+
+// Expects: email, password (optional, uses defaults)
+let email = params.email ?? "default@example.com"
+let password = params.password ?? "defaultpass"
+
+post { "email": email, "password": password } to #auth/login
+
+let token = response.body.accessToken
+let user = response.body.user
+
+// These are now available to the calling script

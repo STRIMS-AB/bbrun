@@ -1,0 +1,85 @@
+// 11-load-testing.bbrun
+// Parallel execution for load testing
+
+baseUrl "https://api.example.com"
+
+// ============================================
+// Option 1: Run via CLI (simplest)
+// ============================================
+// 
+// bbrun load-test.bbrun --threads 50 --duration 1m
+// bbrun load-test.bbrun --threads 100 --rps 500
+// bbrun load-test.bbrun --threads 20 --iterations 1000
+
+// ============================================
+// Option 2: In-script parallel block
+// ============================================
+
+// Run 50 virtual users for 1 minute
+parallel threads: 50, duration: "1m" {
+    // Each thread runs this block repeatedly
+    
+    let email = "user-${thread.id}-${timestamp()}@test.com"
+    
+    post { "email": email } to #auth/register
+    let token = response.body.accessToken
+    
+    get #me with bearer token
+    get #items with bearer token
+}
+
+// After parallel block, stats are available
+print "Total requests: ${stats.requests}"
+print "Success rate: ${stats.successRate}%"
+print "Avg latency: ${stats.latency.avg}ms"
+print "P95 latency: ${stats.latency.p95}ms"
+print "P99 latency: ${stats.latency.p99}ms"
+print "RPS achieved: ${stats.rps}"
+
+// ============================================
+// Rate limiting
+// ============================================
+
+// 50 threads, max 200 requests per second
+parallel threads: 50, rps: 200, duration: "2m" {
+    get #health
+}
+
+// ============================================
+// Ramp-up pattern
+// ============================================
+
+parallel ramp: {
+    { threads: 10, duration: "30s" },   // Warm up
+    { threads: 50, duration: "2m" },    // Full load
+    { threads: 10, duration: "30s" }    // Cool down
+} {
+    get #users
+    get #items
+}
+
+// ============================================
+// Assertions on load test results
+// ============================================
+
+assert stats.successRate >= 99.5 : "Success rate too low"
+assert stats.latency.p95 < 200 : "P95 latency SLA breach"
+warn stats.latency.p99 < 500 : "P99 latency high"
+
+// ============================================
+// Custom metrics
+// ============================================
+
+parallel threads: 20, duration: "1m" {
+    get #users
+    
+    // Track custom metrics
+    metric "user_count" = response.body.length
+    
+    if response.body.length > 100 {
+        metric "large_response" += 1
+    }
+}
+
+print "Avg user count: ${metrics.user_count.avg}"
+print "Large responses: ${metrics.large_response.sum}"

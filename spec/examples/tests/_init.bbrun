@@ -1,0 +1,16 @@
+// tests/_init.bbrun
+// Folder-level init: runs before each test in tests/
+
+// Inherits from root _init.bbrun (baseUrl, macros, etc.)
+
+// Folder-specific setup
+let testSuite = "integration"
+
+// Authenticate once per test
+let adminToken = login("admin@example.com", "secret")
+defaultAuth bearer adminToken
+
+// Folder-specific cleanup (runs after root cleanup)
+cleanup {
+    print "Test suite '${testSuite}' completed"
+}

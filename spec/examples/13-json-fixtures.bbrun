@@ -1,0 +1,95 @@
+// 13-json-fixtures.bbrun
+// Loading and comparing JSON fixtures
+
+baseUrl "https://api.example.com"
+
+// ============================================
+// Load JSON from file
+// ============================================
+
+// Load expected response from file
+let expected = load "fixtures/user-response.json"
+
+get #users/1
+
+// Compare entire response body
+assert response.body == expected
+
+// ============================================
+// Partial matching
+// ============================================
+
+let expectedFields = load "fixtures/user-fields.json"
+
+get #users/1
+
+// Check that response contains expected fields (ignores extra fields)
+assert response.body contains expectedFields
+
+// ============================================
+// Load and post
+// ============================================
+
+// Load request payload from file
+let payload = load "fixtures/create-user-request.json"
+
+post payload to #users
+
+// ============================================
+// Modify loaded objects directly
+// ============================================
+
+// Load and modify — no template syntax needed
+let user = load "fixtures/user-template.json"
+user.email = "test-${timestamp()}@example.com"
+user.name = "Dynamic User"
+
+post user to #users
+
+// ============================================
+// Compare with inline JSON
+// ============================================
+
+get #users/1
+
+assert response.body == {
+    "id": 1,
+    "name": "Alice",
+    "email": "alice@example.com"
+}
+
+// ============================================
+// Ignore specific fields during comparison
+// ============================================
+
+get #users/1
+
+// Ignore dynamic fields like timestamps and IDs
+assert response.body == expected ignoring ["id", "createdAt", "updatedAt"]
+
+// ============================================
+// Array comparisons
+// ============================================
+
+get #users
+
+let expectedUsers = load "fixtures/expected-users.json"
+
+// Exact match (order matters)
+assert response.body == expectedUsers
+
+// Contains all items (order doesn't matter)
+assert response.body contains all expectedUsers
+
+// Contains at least one item
+assert response.body contains any expectedUsers
+
+// ============================================
+// JSON schema validation
+// ============================================
+
+let schema = load "schemas/user.json"
+
+get #users/1
+
+assert response.body matches schema schema

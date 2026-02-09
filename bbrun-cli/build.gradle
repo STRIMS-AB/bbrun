@@ -1,0 +1,55 @@
+plugins {
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+application {
+    mainClass = 'org.bbrun.cli.Main'
+}
+
+dependencies {
+    implementation project(':bbrun-lib')
+
+    // CLI framework
+    implementation 'info.picocli:picocli:4.7.5'
+    annotationProcessor 'info.picocli:picocli-codegen:4.7.5'
+
+    // JSON (for --json output)
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    // Progress bar
+    implementation 'me.tongfei:progressbar:0.10.0'
+
+    // Rich terminal
+    implementation 'org.jline:jline:3.25.0'
+
+    // Testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('jar') {
+    manifest {
+        attributes 'Main-Class': 'org.bbrun.cli.Main'
+    }
+}
+
+// Shadow JAR for native image
+shadowJar {
+    archiveClassifier = 'all'
+    mergeServiceFiles()
+}
+
+// Distribution configuration
+distributions {
+    main {
+        distributionBaseName = 'bbrun'
+    }
+}
+
+// Custom task to build distribution for release
+tasks.register('release') {
+    dependsOn 'distTar', 'distZip', 'shadowJar'
+    description = 'Build release distribution archives'
+    group = 'distribution'
+}

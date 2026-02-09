@@ -1,0 +1,18 @@
+// tests/user-crud.bbrun
+// Test file — _init.bbrun runs before, cleanup runs after
+
+// No setup needed — macros and auth from _init.bbrun are available
+
+// Create test data using tracked macros
+let user = createTestUser("Test User")
+let item = createTestItem("Test Item")
+
+// Test operations
+get #users/${user.id}
+assert response.body.name == "Test User"
+
+get #items/${item.id}
+assert response.body.name == "Test Item"
+
+// No manual cleanup needed — tracked resources auto-cleanup
+print "All assertions passed"

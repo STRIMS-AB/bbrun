@@ -1,0 +1,58 @@
+// 10-macros.bbrun
+// Calling scripts from other scripts
+
+baseUrl "https://api.example.com"
+
+// ============================================
+// Import and run another script
+// ============================================
+
+// Run a script (shares the same context)
+run "auth/login.bbrun"
+
+// After run, variables from that script are available
+print "Logged in as: ${user.email}"
+get #me with bearer token
+
+// ============================================
+// Run with parameters
+// ============================================
+
+run "helpers/create-user.bbrun" with {
+    "email": "test@example.com",
+    "role": "admin"
+}
+
+// ============================================
+// Macros: define inline reusable blocks
+// ============================================
+
+macro login(email, password) {
+    post { "email": email, "password": password } to #auth/login
+    let token = response.body.accessToken
+    return token
+}
+
+macro createUser(name, email) {
+    post { "name": name, "email": email } to #users
+    return response.body
+}
+
+// Use macros
+let token = login("admin@example.com", "secret")
+let user = createUser("Alice", "alice@example.com")
+
+get #users/${user.id} with bearer token
+
+// ============================================
+// Organizing test suites
+// ============================================
+
+// Run multiple scripts in sequence
+run "tests/user-crud.bbrun"
+run "tests/order-flow.bbrun"
+run "tests/payment.bbrun"
+
+// Run with different configs
+run "tests/checkout.bbrun" with { "paymentMethod": "card" }
+run "tests/checkout.bbrun" with { "paymentMethod": "paypal" }

@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'bbrun'
+
+include 'bbrun-lib'
+include 'bbrun-cli'

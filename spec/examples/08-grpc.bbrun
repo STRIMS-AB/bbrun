@@ -1,0 +1,52 @@
+// 08-grpc.bbrun
+// gRPC service calls
+
+// Import proto definition
+proto "path/to/service.proto"
+
+// Connect to gRPC server
+let client = grpc.connect("localhost:50051")
+
+// Unary call
+let response = client.UserService.GetUser({
+    "id": 42
+})
+
+assert response.name == "Alice"
+print response.email
+
+// Unary call with metadata (like HTTP headers)
+let response = client.UserService.GetUser({
+    "id": 42
+}) {
+    metadata: {
+        "authorization": "Bearer ${token}"
+    }
+}
+
+// Server streaming
+let stream = client.FeedService.Subscribe({
+    "userId": 42
+})
+
+for message in stream {
+    print "Received: ${message.content}"
+    if message.type == "END" {
+        break
+    }
+}
+
+// Deadline/timeout
+let response = client.SlowService.Compute({
+    "data": "..."
+}) {
+    timeout: 5000  // milliseconds
+}
+
+// Error handling
+let response = client.UserService.GetUser({ "id": -1 })
+
+if response.error {
+    assert response.error.code == "NOT_FOUND"
+    print "Expected error: ${response.error.message}"
+}
