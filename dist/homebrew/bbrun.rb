@@ -14,17 +14,23 @@ class Bbrun < Formula
   depends_on "openjdk@17"
 
   def install
-    # Remove Windows batch files
-    rm_f Dir["bin/*.bat"]
-    
+    # The tarball extracts to bbrun-0.1.0/ which contains bin/ and lib/
+    # Install everything to libexec, preserving the structure
     libexec.install Dir["*"]
     
-    # Create wrapper that sets JAVA_HOME
+    # Remove Windows batch files
+    rm_f Dir[libexec/"bin/*.bat"]
+    
+    # Make the script executable
+    chmod 0755, libexec/"bin/bbrun-cli"
+    
+    # Create wrapper that sets JAVA_HOME and calls the actual script
     (bin/"bbrun").write <<~EOS
       #!/bin/bash
       export JAVA_HOME="#{Formula["openjdk@17"].opt_prefix}"
       exec "#{libexec}/bin/bbrun-cli" "$@"
     EOS
+    chmod 0755, bin/"bbrun"
   end
 
   test do
