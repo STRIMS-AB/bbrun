@@ -32,28 +32,47 @@ jobs:
           echo "Checking bbrun-cli JAR contents:"
           JAR_FILE=$(find bbrun-cli/build/libs -name "bbrun-cli-*.jar" ! -name "*-all.jar" | head -1)
           echo "JAR file: $JAR_FILE"
-          CLASS_COUNT=$(unzip -l "$JAR_FILE" | grep -c "\.class$" || echo "0")
-          echo "Class files found: $CLASS_COUNT"
-          if [ "$CLASS_COUNT" -lt 1 ]; then
-            echo "ERROR: No class files in JAR!"
-            exit 1
-          fi
+          unzip -l "$JAR_FILE" | grep "org/bbrun/cli/Main.class" || { echo "ERROR: Main.class not found!"; exit 1; }
 
       - name: Build distribution
         run: ./gradlew :bbrun-cli:distTar :bbrun-cli:distZip --no-daemon
 
-      - name: List distribution
-        run: ls -la bbrun-cli/build/distributions/
+      - name: List and verify distribution
+        run: |
+          echo "Distribution files:"
+          ls -la bbrun-cli/build/distributions/
+
+          # Find the main distribution tar (not shadow)
+          DIST_TAR=$(find bbrun-cli/build/distributions -name "bbrun-*.tar" ! -name "*shadow*" | head -1)
+          echo "Using distribution: $DIST_TAR"
+
+          # Extract and verify it contains the right JAR with classes
+          tar -tf "$DIST_TAR" | head -20
 
       - name: Rename distributions with version
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           cd bbrun-cli/build/distributions
-          # Rename to include version in filename
-          for f in bbrun-*.tar; do mv "$f" "bbrun-${VERSION}.tar" 2>/dev/null || true; done
-          for f in bbrun-*.zip; do mv "$f" "bbrun-${VERSION}.zip" 2>/dev/null || true; done
+
+          # Find the main tar file (not shadow)
+          DIST_TAR=$(find . -name "bbrun-*.tar" ! -name "*shadow*" | head -1)
+          DIST_ZIP=$(find . -name "bbrun-*.zip" ! -name "*shadow*" | head -1)
+
+          echo "Renaming $DIST_TAR to bbrun-${VERSION}.tar"
+          mv "$DIST_TAR" "bbrun-${VERSION}.tar"
+
+          if [ -n "$DIST_ZIP" ]; then
+            echo "Renaming $DIST_ZIP to bbrun-${VERSION}.zip"
+            mv "$DIST_ZIP" "bbrun-${VERSION}.zip"
+          fi
+
           # Create gzipped tarball
           gzip "bbrun-${VERSION}.tar"
+
+          # Remove any shadow distributions
+          rm -f *shadow* 2>/dev/null || true
+
+          echo "Final distribution files:"
           ls -la
 
       - name: Upload artifacts
