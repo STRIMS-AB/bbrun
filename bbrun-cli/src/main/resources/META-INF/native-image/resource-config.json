@@ -1,0 +1,14 @@
+[
+    {
+        "pattern": "\\Qorg/antlr/v4/runtime/atn/ATNDeserializer.class\\E"
+    },
+    {
+        "pattern": "\\Q*.interp\\E"
+    },
+    {
+        "pattern": "\\Q*.tokens\\E"
+    },
+    {
+        "pattern": "org/bbrun/parser/.*"
+    }
+]

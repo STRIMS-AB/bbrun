@@ -39,22 +39,34 @@ jobs:
 
       - name: Build native image
         run: |
-          # Use explicit path based on known naming convention
           JAR_FILE="bbrun-cli/build/libs/bbrun-cli-0.1.0-SNAPSHOT-all.jar"
 
           if [ ! -f "$JAR_FILE" ]; then
             echo "ERROR: Expected JAR not found at $JAR_FILE"
-            echo "Available files:"
             ls -la bbrun-cli/build/libs/
             exit 1
           fi
 
           echo "Building native image from: $JAR_FILE"
+
+          # Run with tracing agent first to generate configs
+          java -agentlib:native-image-agent=config-output-dir=native-config \
+            -jar "$JAR_FILE" --version || true
+
+          echo "Generated config files:"
+          ls -la native-config/ || echo "No config generated"
+
+          # Build native image with all configs
           native-image \
             --no-fallback \
             -H:+ReportExceptionStackTraces \
+            -H:ConfigurationFileDirectories=native-config \
+            --initialize-at-build-time=org.slf4j \
             -jar "$JAR_FILE" \
             -o bbrun
+
+      - name: Test native binary
+        run: ./bbrun --version
 
       - name: Package
         run: |

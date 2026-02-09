@@ -2,7 +2,14 @@
     {
         "name": "org.bbrun.cli.Main",
         "allDeclaredConstructors": true,
-        "allDeclaredMethods": true
+        "allDeclaredMethods": true,
+        "allDeclaredFields": true
+    },
+    {
+        "name": "org.bbrun.cli.BBRunCommand",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true,
+        "allDeclaredFields": true
     },
     {
         "name": "org.bbrun.parser.BBRunParser",
@@ -18,6 +25,17 @@
     },
     {
         "name": "org.bbrun.parser.BBRunBaseVisitor",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true
+    },
+    {
+        "name": "org.antlr.v4.runtime.atn.ATN",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true,
+        "allDeclaredFields": true
+    },
+    {
+        "name": "org.antlr.v4.runtime.atn.ATNDeserializer",
         "allDeclaredConstructors": true,
         "allDeclaredMethods": true
     },
