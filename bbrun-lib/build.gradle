@@ -26,10 +26,3 @@ tasks.named('generateGrammarSource') {
     outputDirectory = layout.buildDirectory.dir('generated-src/antlr/main/org/bbrun/parser').get().asFile
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir layout.buildDirectory.dir('generated-src/antlr/main')
-        }
-    }
-}
