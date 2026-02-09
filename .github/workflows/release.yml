@@ -21,53 +21,35 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
       - name: Build fat JAR
-        run: ./gradlew clean :bbrun-cli:fatJar --no-daemon
-
-      - name: Verify fat JAR
         run: |
-          echo "Checking fat JAR contents:"
-          JAR_FILE=$(find bbrun-cli/build/libs -name "*-all.jar" | head -1)
-          echo "JAR file: $JAR_FILE"
-          ls -lh "$JAR_FILE"
-          unzip -l "$JAR_FILE" | grep "org/bbrun/cli/Main.class" || { echo "ERROR: Main.class not found!"; exit 1; }
-          echo "✓ Main.class found"
+          chmod +x ./gradlew
+          ./gradlew clean :bbrun-cli:fatJar --no-daemon
 
       - name: Create distribution
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          JAR_FILE=$(find bbrun-cli/build/libs -name "*-all.jar" | head -1)
 
           mkdir -p dist/bbrun-${VERSION}/lib
           mkdir -p dist/bbrun-${VERSION}/bin
 
-          # Copy fat JAR
-          cp "$JAR_FILE" "dist/bbrun-${VERSION}/lib/bbrun.jar"
+          cp bbrun-cli/build/libs/*-all.jar dist/bbrun-${VERSION}/lib/bbrun.jar
 
-          # Create simple run script
-          cat > "dist/bbrun-${VERSION}/bin/bbrun" << 'EOF'
+          cat > dist/bbrun-${VERSION}/bin/bbrun << 'EOF'
           #!/bin/sh
           SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
           exec java -jar "$SCRIPT_DIR/../lib/bbrun.jar" "$@"
           EOF
-          chmod +x "dist/bbrun-${VERSION}/bin/bbrun"
+          chmod +x dist/bbrun-${VERSION}/bin/bbrun
 
-          # Create Windows batch file
-          cat > "dist/bbrun-${VERSION}/bin/bbrun.bat" << 'EOF'
+          cat > dist/bbrun-${VERSION}/bin/bbrun.bat << 'EOF'
           @echo off
           java -jar "%~dp0..\lib\bbrun.jar" %*
           EOF
 
-          # Create tarball and zip
           cd dist
-          tar -czf "bbrun-${VERSION}.tar.gz" "bbrun-${VERSION}"
-          zip -r "bbrun-${VERSION}.zip" "bbrun-${VERSION}"
-
-          echo "Distribution contents:"
-          ls -la
+          tar -czf bbrun-${VERSION}.tar.gz bbrun-${VERSION}
+          zip -r bbrun-${VERSION}.zip bbrun-${VERSION}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -82,16 +64,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: bbrun-dist
           path: dist
-
-      - name: List artifacts
-        run: ls -la dist/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
