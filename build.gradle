@@ -1,7 +1,3 @@
-plugins {
-    id 'java-library'
-}
-
 allprojects {
     group = 'org.bbrun'
     version = '0.1.0-SNAPSHOT'
