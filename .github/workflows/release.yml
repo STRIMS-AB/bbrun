@@ -24,7 +24,7 @@ jobs:
       - name: Build fat JAR
         run: |
           chmod +x ./gradlew
-          ./gradlew clean :bbrun-cli:fatJar --no-daemon
+          ./gradlew clean build --no-daemon
 
       - name: Create distribution
         run: |

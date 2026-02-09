@@ -1,9 +1,5 @@
 plugins {
-    id 'application'
-}
-
-application {
-    mainClass = 'org.bbrun.cli.Main'
+    id 'java'
 }
 
 dependencies {
@@ -28,14 +24,7 @@ dependencies {
 }
 
 // Configure the standard jar task
-tasks.named('jar') {
-    manifest {
-        attributes 'Main-Class': 'org.bbrun.cli.Main'
-    }
-}
-
-// Simple fat JAR task - no external plugins needed
-tasks.register('fatJar', Jar) {
+jar {
     archiveClassifier = 'all'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     
@@ -57,15 +46,6 @@ tasks.register('fatJar', Jar) {
     exclude 'META-INF/*.RSA'
 }
 
-// Make fatJar depend on all dependency jars being built
-tasks.named('fatJar') {
-    dependsOn jar
+tasks.named('jar') {
     dependsOn ':bbrun-lib:jar'
-}
-
-// Distribution configuration - uses standard application plugin
-distributions {
-    main {
-        distributionBaseName = 'bbrun'
-    }
 }
