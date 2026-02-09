@@ -1,6 +1,5 @@
 plugins {
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 application {
@@ -28,28 +27,45 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// Configure the standard jar task
 tasks.named('jar') {
     manifest {
         attributes 'Main-Class': 'org.bbrun.cli.Main'
     }
 }
 
-// Shadow JAR for native image
-shadowJar {
+// Simple fat JAR task - no external plugins needed
+tasks.register('fatJar', Jar) {
     archiveClassifier = 'all'
-    mergeServiceFiles()
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    
+    manifest {
+        attributes 'Main-Class': 'org.bbrun.cli.Main'
+    }
+    
+    // Include compiled classes from this module
+    from sourceSets.main.output
+    
+    // Include all runtime dependencies (unzipped)
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    
+    // Exclude signature files that cause issues
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
 }
 
-// Distribution configuration
+// Make fatJar depend on all dependency jars being built
+tasks.named('fatJar') {
+    dependsOn jar
+    dependsOn ':bbrun-lib:jar'
+}
+
+// Distribution configuration - uses standard application plugin
 distributions {
     main {
         distributionBaseName = 'bbrun'
     }
-}
-
-// Custom task to build distribution for release
-tasks.register('release') {
-    dependsOn 'distTar', 'distZip', 'shadowJar'
-    description = 'Build release distribution archives'
-    group = 'distribution'
 }

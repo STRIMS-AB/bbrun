@@ -24,42 +24,49 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Build shadow JAR
-        run: ./gradlew clean :bbrun-cli:shadowJar --no-daemon
+      - name: Build fat JAR
+        run: ./gradlew clean :bbrun-cli:fatJar --no-daemon
 
-      - name: Verify shadow JAR contains classes
+      - name: Verify fat JAR
         run: |
-          echo "Checking shadow JAR contents:"
+          echo "Checking fat JAR contents:"
           JAR_FILE=$(find bbrun-cli/build/libs -name "*-all.jar" | head -1)
           echo "JAR file: $JAR_FILE"
+          ls -lh "$JAR_FILE"
           unzip -l "$JAR_FILE" | grep "org/bbrun/cli/Main.class" || { echo "ERROR: Main.class not found!"; exit 1; }
           echo "✓ Main.class found"
 
-      - name: Build shadow distribution
-        run: ./gradlew :bbrun-cli:shadowDistTar :bbrun-cli:shadowDistZip --no-daemon
-
-      - name: List and verify distribution
-        run: |
-          echo "Distribution files:"
-          ls -la bbrun-cli/build/distributions/
-
-      - name: Rename distributions with version
+      - name: Create distribution
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          cd bbrun-cli/build/distributions
+          JAR_FILE=$(find bbrun-cli/build/libs -name "*-all.jar" | head -1)
 
-          # Rename shadow distributions
-          for f in bbrun-cli-shadow-*.tar; do 
-            mv "$f" "bbrun-${VERSION}.tar" 2>/dev/null || true
-          done
-          for f in bbrun-cli-shadow-*.zip; do 
-            mv "$f" "bbrun-${VERSION}.zip" 2>/dev/null || true
-          done
+          mkdir -p dist/bbrun-${VERSION}/lib
+          mkdir -p dist/bbrun-${VERSION}/bin
 
-          # Create gzipped tarball
-          gzip "bbrun-${VERSION}.tar"
+          # Copy fat JAR
+          cp "$JAR_FILE" "dist/bbrun-${VERSION}/lib/bbrun.jar"
 
-          echo "Final distribution files:"
+          # Create simple run script
+          cat > "dist/bbrun-${VERSION}/bin/bbrun" << 'EOF'
+          #!/bin/sh
+          SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+          exec java -jar "$SCRIPT_DIR/../lib/bbrun.jar" "$@"
+          EOF
+          chmod +x "dist/bbrun-${VERSION}/bin/bbrun"
+
+          # Create Windows batch file
+          cat > "dist/bbrun-${VERSION}/bin/bbrun.bat" << 'EOF'
+          @echo off
+          java -jar "%~dp0..\lib\bbrun.jar" %*
+          EOF
+
+          # Create tarball and zip
+          cd dist
+          tar -czf "bbrun-${VERSION}.tar.gz" "bbrun-${VERSION}"
+          zip -r "bbrun-${VERSION}.zip" "bbrun-${VERSION}"
+
+          echo "Distribution contents:"
           ls -la
 
       - name: Upload artifacts
@@ -67,8 +74,8 @@ jobs:
         with:
           name: bbrun-dist
           path: |
-            bbrun-cli/build/distributions/*.tar.gz
-            bbrun-cli/build/distributions/*.zip
+            dist/*.tar.gz
+            dist/*.zip
 
   release:
     needs: build
