@@ -8,35 +8,26 @@ class Bbrun < Formula
   version "0.1.0"
   license "MIT"
 
-  # Native binaries (no JVM required)
-  on_macos do
-    on_arm do
-      url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-#{version}-macos-aarch64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_ARM64"
-    end
-    on_intel do
-      url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-#{version}-macos-x64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_X64"
-    end
-  end
+  url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-#{version}.tar.gz"
+  sha256 "d8cff34b0983cbcd34e8e9d0b0c249369c78ce2414612d85178892685da60bad"
 
-  on_linux do
-    on_arm do
-      url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-#{version}-linux-aarch64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_LINUX_ARM64"
-    end
-    on_intel do
-      url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-#{version}-linux-x64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_LINUX_X64"
-    end
-  end
+  depends_on "openjdk@17"
 
   def install
-    bin.install "bbrun"
+    # Remove Windows batch files
+    rm_f Dir["bin/*.bat"]
+    
+    libexec.install Dir["*"]
+    
+    # Create wrapper that sets JAVA_HOME
+    (bin/"bbrun").write <<~EOS
+      #!/bin/bash
+      export JAVA_HOME="#{Formula["openjdk@17"].opt_prefix}"
+      exec "#{libexec}/bin/bbrun-cli" "$@"
+    EOS
   end
 
   test do
-    # Simple test to verify installation
     assert_match "BBRun", shell_output("#{bin}/bbrun --version")
   end
 end
