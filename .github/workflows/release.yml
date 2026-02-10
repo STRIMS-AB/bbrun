@@ -10,88 +10,75 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: bbrun-linux-amd64
+          - os: macos-latest
+            artifact: bbrun-macos-amd64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
         with:
           java-version: "17"
-          distribution: "temurin"
+          distribution: "graalvm"
 
-      - name: Build JARs and copy dependencies
+      - name: Build with Gradle
         run: |
           chmod +x ./gradlew
-          ./gradlew :bbrun-cli:jar :bbrun-cli:copyDeps --no-daemon
+          ./gradlew :bbrun-lib:compileJava :bbrun-cli:compileJava :bbrun-cli:copyDeps --no-daemon
 
-      - name: Assemble fat JAR
+      - name: Build native image
         run: |
-          mkdir -p tmp/fatjar
-          cd tmp/fatjar
-
-          # Extract bbrun-cli classes
-          jar xf ../../bbrun-cli/build/libs/*.jar
-
-          # Extract all dependencies (bbrun-lib + third party)
-          for f in ../../bbrun-cli/build/deps/*.jar; do
-            jar xf "$f"
+          # Collect classpath
+          CLASSPATH="bbrun-cli/build/classes/java/main:bbrun-lib/build/classes/java/main"
+          for jar in bbrun-cli/build/deps/*.jar; do
+            CLASSPATH="$CLASSPATH:$jar"
           done
 
-          # Remove JAR signature files
-          rm -f META-INF/*.SF META-INF/*.DSA META-INF/*.RSA
-
-          # Write manifest explicitly (dependency JARs overwrite the original)
-          mkdir -p META-INF
-          echo "Manifest-Version: 1.0" > META-INF/MANIFEST.MF
-          echo "Main-Class: org.bbrun.cli.Main" >> META-INF/MANIFEST.MF
-
-          # Create fat JAR
-          jar cfm ../../bbrun.jar META-INF/MANIFEST.MF .
+          native-image \
+            -cp "$CLASSPATH" \
+            -H:Name=bbrun \
+            -H:+ReportExceptionStackTraces \
+            --no-fallback \
+            --initialize-at-build-time \
+            org.bbrun.cli.Main
 
       - name: Create distribution
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
+          mkdir -p dist
+          tar -czf "dist/${{ matrix.artifact }}-${VERSION}.tar.gz" bbrun
 
-          mkdir -p dist/bbrun-${VERSION}/lib
-          mkdir -p dist/bbrun-${VERSION}/bin
-
-          cp bbrun.jar dist/bbrun-${VERSION}/lib/bbrun.jar
-
-          cat > dist/bbrun-${VERSION}/bin/bbrun << 'SCRIPT'
-          #!/bin/sh
-          SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-          exec java -jar "$SCRIPT_DIR/../lib/bbrun.jar" "$@"
-          SCRIPT
-          chmod +x dist/bbrun-${VERSION}/bin/bbrun
-
-          cd dist
-          tar -czf bbrun-${VERSION}.tar.gz bbrun-${VERSION}
-          zip -r bbrun-${VERSION}.zip bbrun-${VERSION}
-
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bbrun-dist
-          path: |
-            dist/*.tar.gz
-            dist/*.zip
+          name: ${{ matrix.artifact }}
+          path: dist/*.tar.gz
 
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: bbrun-dist
           path: dist
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find dist -type f
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/*
+          files: dist/**/*.tar.gz
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

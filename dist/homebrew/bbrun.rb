@@ -5,31 +5,24 @@
 class Bbrun < Formula
   desc "HTTP API testing DSL - write expressive API tests"
   homepage "https://github.com/STRIMS-AB/bbrun"
-  version "0.1.15"
+  version "0.1.17"
   license "MIT"
 
-  url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-#{version}.tar.gz"
-  sha256 "c894593945a940131f038bb368d2f2f1570556472efc8cd68fb716fd8772c035"
+  on_macos do
+    url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-macos-amd64-#{version}.tar.gz"
+    sha256 "PLACEHOLDER"
+  end
 
-  depends_on "openjdk@17"
+  on_linux do
+    url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-linux-amd64-#{version}.tar.gz"
+    sha256 "PLACEHOLDER"
+  end
 
   def install
-    # Install everything to libexec
-    libexec.install Dir["*"]
-    
-    # Make the script executable
-    chmod 0755, libexec/"bin/bbrun"
-    
-    # Create wrapper that sets JAVA_HOME
-    (bin/"bbrun").write <<~EOS
-      #!/bin/bash
-      export JAVA_HOME="#{Formula["openjdk@17"].opt_prefix}"
-      exec "#{libexec}/bin/bbrun" "$@"
-    EOS
-    chmod 0755, bin/"bbrun"
+    bin.install "bbrun"
   end
 
   test do
-    assert_match "BBRun", shell_output("#{bin}/bbrun --version")
+    assert_match "bbrun", shell_output("#{bin}/bbrun --version")
   end
 end
