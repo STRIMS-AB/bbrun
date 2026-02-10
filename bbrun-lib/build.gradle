@@ -1,12 +1,12 @@
 plugins {
-    id 'java-library'
+    id 'java'
     id 'antlr'
 }
 
 dependencies {
     // ANTLR
-    antlr 'org.antlr:antlr4:4.13.1'
-    implementation 'org.antlr:antlr4-runtime:4.13.1'
+    antlr 'org.antlr:antlr4:4.13.2'
+    implementation 'org.antlr:antlr4-runtime:4.13.2'
 
     // HTTP Client - OkHttp is optional, only needed if using OkHttpClientImpl via SPI
     // Default implementation uses Java 11+ HttpClient (zero dependencies)
