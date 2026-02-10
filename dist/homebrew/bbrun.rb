@@ -5,7 +5,7 @@
 class Bbrun < Formula
   desc "HTTP API testing DSL - write expressive API tests"
   homepage "https://github.com/STRIMS-AB/bbrun"
-  version "0.1.17"
+  version "0.1.18"
   license "MIT"
 
   on_macos do

@@ -47,7 +47,10 @@ jobs:
             -H:Name=bbrun \
             -H:+ReportExceptionStackTraces \
             --no-fallback \
-            --initialize-at-build-time \
+            --initialize-at-build-time=org.bbrun,picocli,com.google.gson,org.antlr.v4 \
+            --initialize-at-run-time=org.jline,org.fusesource \
+            -H:IncludeResources=".*\\.interp$" \
+            -H:IncludeResources=".*\\.tokens$" \
             org.bbrun.cli.Main
 
       - name: Create distribution
