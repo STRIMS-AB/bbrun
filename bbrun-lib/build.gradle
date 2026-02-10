@@ -21,8 +21,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-tasks.named('generateGrammarSource') {
+generateGrammarSource {
     arguments += ['-visitor', '-long-messages', '-package', 'org.bbrun.parser']
-    outputDirectory = layout.buildDirectory.dir('generated-src/antlr/main/org/bbrun/parser').get().asFile
 }
 
