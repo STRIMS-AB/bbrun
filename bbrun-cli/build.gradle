@@ -23,29 +23,15 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// Configure the standard jar task
+// Standard jar with manifest
 jar {
-    archiveClassifier = 'all'
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    
     manifest {
         attributes 'Main-Class': 'org.bbrun.cli.Main'
     }
-    
-    // Include compiled classes from this module
-    from sourceSets.main.output
-    
-    // Include all runtime dependencies (unzipped)
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    
-    // Exclude signature files that cause issues
-    exclude 'META-INF/*.SF'
-    exclude 'META-INF/*.DSA'
-    exclude 'META-INF/*.RSA'
 }
 
-tasks.named('jar') {
-    dependsOn ':bbrun-lib:jar'
+// Copy all runtime dependencies to build/deps for packaging
+tasks.register('copyDeps', Copy) {
+    from configurations.runtimeClasspath
+    into layout.buildDirectory.dir('deps')
 }

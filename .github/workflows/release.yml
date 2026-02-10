@@ -21,10 +21,30 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Build fat JAR
+      - name: Build JARs and copy dependencies
         run: |
           chmod +x ./gradlew
-          ./gradlew clean build --no-daemon
+          ./gradlew :bbrun-cli:jar :bbrun-cli:copyDeps --no-daemon
+
+      - name: Assemble fat JAR
+        run: |
+          # Create temp directory for assembling
+          mkdir -p tmp/fatjar
+          cd tmp/fatjar
+
+          # Extract bbrun-cli classes
+          jar xf ../../bbrun-cli/build/libs/*.jar
+
+          # Extract all dependencies (bbrun-lib + third party)
+          for f in ../../bbrun-cli/build/deps/*.jar; do
+            jar xf "$f"
+          done
+
+          # Remove JAR signature files
+          rm -f META-INF/*.SF META-INF/*.DSA META-INF/*.RSA
+
+          # Create fat JAR with manifest
+          jar cfm ../../bbrun.jar META-INF/MANIFEST.MF .
 
       - name: Create distribution
         run: |
@@ -33,19 +53,14 @@ jobs:
           mkdir -p dist/bbrun-${VERSION}/lib
           mkdir -p dist/bbrun-${VERSION}/bin
 
-          cp bbrun-cli/build/libs/*-all.jar dist/bbrun-${VERSION}/lib/bbrun.jar
+          cp bbrun.jar dist/bbrun-${VERSION}/lib/bbrun.jar
 
-          cat > dist/bbrun-${VERSION}/bin/bbrun << 'EOF'
+          cat > dist/bbrun-${VERSION}/bin/bbrun << 'SCRIPT'
           #!/bin/sh
           SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
           exec java -jar "$SCRIPT_DIR/../lib/bbrun.jar" "$@"
-          EOF
+          SCRIPT
           chmod +x dist/bbrun-${VERSION}/bin/bbrun
-
-          cat > dist/bbrun-${VERSION}/bin/bbrun.bat << 'EOF'
-          @echo off
-          java -jar "%~dp0..\lib\bbrun.jar" %*
-          EOF
 
           cd dist
           tar -czf bbrun-${VERSION}.tar.gz bbrun-${VERSION}
@@ -62,7 +77,6 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4

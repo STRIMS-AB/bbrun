@@ -8,20 +8,19 @@ dependencies {
     antlr 'org.antlr:antlr4:4.13.2'
     implementation 'org.antlr:antlr4-runtime:4.13.2'
 
-    // HTTP Client - OkHttp is optional, only needed if using OkHttpClientImpl via SPI
-    // Default implementation uses Java 11+ HttpClient (zero dependencies)
-    // compileOnly 'com.squareup.okhttp3:okhttp:4.12.0'
-
     // JSON
     implementation 'com.google.code.gson:gson:2.10.1'
 
     // Testing
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
-    // testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'  // Optional, only for OkHttp tests
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 generateGrammarSource {
     arguments += ['-visitor', '-long-messages', '-package', 'org.bbrun.parser']
+    // outputDirectory MUST include the package path so Java files are in the correct directory
+    outputDirectory = layout.buildDirectory.dir('generated-src/antlr/main/org/bbrun/parser').get().asFile
 }
 
+// Register generated source directory (parent of the package path)
+sourceSets.main.java.srcDir layout.buildDirectory.dir('generated-src/antlr/main')
