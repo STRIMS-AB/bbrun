@@ -5,11 +5,11 @@
 class Bbrun < Formula
   desc "HTTP API testing DSL - write expressive API tests"
   homepage "https://github.com/STRIMS-AB/bbrun"
-  version "0.1.8"
+  version "0.1.15"
   license "MIT"
 
   url "https://github.com/STRIMS-AB/bbrun/releases/download/v#{version}/bbrun-#{version}.tar.gz"
-  sha256 "2cd9fa811c9f878c11ab2b841aaa7c08b93c6d6831b00cc0d846e9a5c143e8aa"
+  sha256 "c894593945a940131f038bb368d2f2f1570556472efc8cd68fb716fd8772c035"
 
   depends_on "openjdk@17"
 

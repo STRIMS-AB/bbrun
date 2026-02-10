@@ -28,7 +28,6 @@ jobs:
 
       - name: Assemble fat JAR
         run: |
-          # Create temp directory for assembling
           mkdir -p tmp/fatjar
           cd tmp/fatjar
 
@@ -43,7 +42,12 @@ jobs:
           # Remove JAR signature files
           rm -f META-INF/*.SF META-INF/*.DSA META-INF/*.RSA
 
-          # Create fat JAR with manifest
+          # Write manifest explicitly (dependency JARs overwrite the original)
+          mkdir -p META-INF
+          echo "Manifest-Version: 1.0" > META-INF/MANIFEST.MF
+          echo "Main-Class: org.bbrun.cli.Main" >> META-INF/MANIFEST.MF
+
+          # Create fat JAR
           jar cfm ../../bbrun.jar META-INF/MANIFEST.MF .
 
       - name: Create distribution
