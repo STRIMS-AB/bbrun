@@ -49,6 +49,8 @@ jobs:
             --no-fallback \
             --initialize-at-build-time=org.bbrun,picocli,com.google.gson,org.antlr.v4 \
             --initialize-at-run-time=org.jline,org.fusesource \
+            --exclude-config '.*jline.*' 'META-INF/native-image/.*' \
+            --exclude-config '.*jansi.*' 'META-INF/native-image/.*' \
             -H:IncludeResources=".*\\.interp$" \
             -H:IncludeResources=".*\\.tokens$" \
             org.bbrun.cli.Main
