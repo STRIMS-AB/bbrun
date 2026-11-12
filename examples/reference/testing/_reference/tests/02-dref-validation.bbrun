@@ -1,0 +1,36 @@
+// 02 - DRef Validation Example
+// BBRun uses DRef as its default canonical validation framework.
+// Objects can be validated directly against their DRef model definitions.
+// Models live in the Domain "Commerce" (doc: examples/reference/domain.json):
+// Customer, Product, Order, OrderItem, PaymentIntent.
+
+let validCustomer = {
+    "id": "cus_4829",
+    "email": "sarah.connor@cyberdyne.org",
+    "firstName": "Sarah",
+    "lastName": "Connor",
+    "createdAt": "2026-09-10T12:00:00Z",
+    "updatedAt": "2026-09-10T12:00:00Z"
+}
+
+// First-class DRef validation statement
+validate validCustomer as Customer
+
+// Boolean expression matches check
+assert validCustomer matches Customer
+
+// PaymentIntent is our model in the same Commerce domain
+let validPayment = {
+    "id": "pi_" + uuid(),
+    "orderId": "ord_9001",
+    "amount": 250.0,
+    "currency": "EUR",
+    "status": "succeeded",
+    "createdAt": "2026-09-10T12:00:00Z"
+}
+
+validate validPayment as PaymentIntent
+assert validPayment matches PaymentIntent
+assert validPayment.amount > 0
+
+print "All objects successfully validated against Commerce Customer & PaymentIntent!"

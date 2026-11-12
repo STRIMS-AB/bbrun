@@ -1,0 +1,48 @@
+# Language & resource-type reference examples. These exercise engine
+# capabilities (mock routing with `when`, non-HTTP resource types, mock kinds,
+# DRef validation) rather than a single API under test.
+version: "1.0"
+defaultEnvironment: "local"
+domain: ../../domain.json
+# paymentsApi is bound to the "Stripe PaymentIntent" mapping that
+# PaymentIntent declares with mapsFrom in that domain document, which is what
+# tests/04-oauth2-apigee.bbrun relies on when it validates response.body.
+
+environments:
+  local:
+    resources:
+      customersApi:
+        type: mock
+
+      paymentsApi:
+        type: mock
+        mapping: "Stripe PaymentIntent"
+
+      productsApi:
+        type: mock
+
+      auditService:
+        type: mock
+
+      fileStore:
+        type: file
+        dir: fs
+
+      ordersDb:
+        type: sql
+        data:
+          orders:
+            - { id: "ord_1", status: "pending", total: 1550, region: "eu" }
+            - { id: "ord_2", status: "shipped", total: 3250, region: "us" }
+            - { id: "ord_3", status: "refunded", total: 900, region: "eu" }
+
+      jobsQueue:
+        type: queue
+
+      mailSender:
+        type: email
+        from: notifications@example.com
+
+      orderQueue:
+        type: mock
+        mock: queue

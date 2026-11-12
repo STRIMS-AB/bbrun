@@ -1,0 +1,33 @@
+name: Publish to Maven Central
+
+# A tag v1.2.3 publishes org.bbrun:bbrun-core, the engine a Java service embeds. The
+# version is the one in build.gradle; the tag only starts the run (the same tag builds the
+# executables: release.yml). iconn, regl and DRef must be on Maven Central first.
+#
+# Secrets: CENTRAL_TOKEN_USER and CENTRAL_TOKEN_PASSWORD (a user token of the Central
+# Portal, where the namespace org.bbrun is verified), MAVEN_GPG_PRIVATE_KEY and
+# MAVEN_GPG_PASSPHRASE (the key the artifacts are signed with).
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Publish
+        run: dist/central.sh --upload
+        env:
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          CENTRAL_TOKEN_USER: ${{ secrets.CENTRAL_TOKEN_USER }}
+          CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}

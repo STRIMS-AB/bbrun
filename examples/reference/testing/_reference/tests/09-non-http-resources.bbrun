@@ -1,0 +1,60 @@
+// 09 - Beyond REST: file / sql / queue / email resources
+//
+// Resource operations are method calls on the resource (`resource.op(...)`);
+// the resource's type makes the verb meaningful. HTTP/mock resources keep the
+// REST verbs; these four types speak their own vocabulary:
+//
+//   file  : get / put / list / delete     (directory from config `dir`)
+//   sql   : query / execute               (in-memory, seeded from `data`)
+//   queue : send / receive / peek         (in-memory FIFO)
+//   email : send / outbox                 (in-memory outbox sink)
+//
+// Run: bbrun examples/reference/testing/_reference/tests/09-non-http-resources.bbrun -c examples/reference/testing/_reference/bbrun.yaml
+
+print "== SQL =="
+
+let pending = ordersDb.query("select * from orders where status = 'pending'")
+assert pending.length == 1
+assert pending[0].id == "ord_1"
+assert pending[0].total == 1550
+
+ordersDb.execute("insert into orders (id, status, total) values ('ord_9', 'pending', 700)")
+assert ordersDb.query("select * from orders").length == 4
+
+ordersDb.execute("update orders set region = 'apac' where id = 'ord_9'")
+let apac = ordersDb.query("select * from orders where region = 'apac'")
+assert apac.length == 1
+assert apac[0].id == "ord_9"
+
+let byTotal = ordersDb.query("select * from orders order by total desc limit 2")
+assert byTotal.length == 2
+assert byTotal[0].total == 3250
+
+print "== QUEUE =="
+
+jobsQueue.send({ "job": "invoice_1550", "amount": 1550 })
+jobsQueue.send({ "job": "invoice_3250", "amount": 3250 })
+assert jobsQueue.receive().job == "invoice_1550"
+assert jobsQueue.peek().amount == 3250
+assert jobsQueue.receive().job == "invoice_3250"
+
+print "== FILE =="
+
+fileStore.put("reports/daily.json", { "day": "2026-09-10", "orders": 4 })
+let report = fileStore.get("reports/daily.json")
+assert report.exists == true
+assert report.content contains "2026-09-10"
+assert fileStore.list("reports").length == 1
+
+fileStore.delete("reports/daily.json")
+assert fileStore.get("reports/daily.json").exists == false
+
+print "== EMAIL =="
+
+let ack = mailSender.send({ to: "ops@example.com", subject: "Daily report ready", body: "See attachments" })
+assert ack.accepted == true
+assert ack.to contains "ops@example.com"
+
+let inbox = mailSender.outbox()
+assert inbox.length == 1
+assert inbox[0].subject == "Daily report ready"

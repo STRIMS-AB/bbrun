@@ -1,0 +1,26 @@
+// Payments API test suite: the detail endpoint (/v1/payments/{id}) served by
+// the script route in mocks/paymentsApi.yaml (mocks/payment-detail.bbrun).
+//
+// Run: bbrun examples/reference/testing/payments/tests/payment-detail.bbrun -c examples/reference/testing/payments/bbrun.yaml
+
+// Happy path: an existing payment is returned with the stored shape
+paymentsApi.get("/v1/payments/pi_9001")
+assert response.status == 200
+assert response.body.id == "pi_9001"
+assert response.body.amount == 1550
+assert response.body.status == "succeeded"
+print "payment detail: pi_9001 served with amount 1550"
+
+// Happy path: the second ledger entry
+paymentsApi.get("/v1/payments/pi_9002")
+assert response.status == 200
+assert response.body.amount == 8500
+assert response.body.status == "pending"
+print "payment detail: pi_9002 served with status pending"
+
+// Negative case: unknown id -> the script's respond(404, error)
+paymentsApi.get("/v1/payments/pi_does_not_exist")
+assert response.status == 404
+assert response.body.error == "payment not found"
+assert response.body.id == "pi_does_not_exist"
+print "payment detail: unknown id handled with 404 + error body"

@@ -1,0 +1,33 @@
+# Embedded integration flows (use case B): executed inside a Java server via
+# org.bbrun.IntegrationEngine — the flows orchestrate several resources,
+# transform external payloads into our models (implicit mapping via the
+# "Stripe PaymentIntent" mapping PaymentIntent declares with mapsFrom) and
+# `return` the combined value your server uses to build its response.
+version: "1.0"
+defaultEnvironment: "local"
+domain: ../domain.json
+
+environments:
+  local:
+    resources:
+      customersApi:
+        type: mock
+
+      paymentsApi:
+        type: mock
+        mapping: "Stripe PaymentIntent"
+
+  dev:
+    resources:
+      customersApi:
+        baseUrl: "https://customers.dev.strims.io"
+        auth:
+          type: bearer
+          token: "${DEV_CUSTOMERS_TOKEN:-dev_token_secret_123}"
+
+      paymentsApi:
+        baseUrl: "https://payments.dev.strims.io"
+        mapping: "Stripe PaymentIntent"
+        auth:
+          type: bearer
+          token: "${DEV_PAYMENTS_TOKEN:-dev_token_secret_456}"

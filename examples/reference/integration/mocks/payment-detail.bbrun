@@ -1,0 +1,21 @@
+// mocks/payment-detail.bbrun
+//
+// Advanced mock handler: a full BBRun script that simulates the gateway.
+// It runs WITHOUT our domain models - nothing here is bound to Commerce.PaymentIntent.
+//
+// Inputs bound by the mock engine: `verb`, `path`, `body`, `params` ({id} from the
+// path pattern), `query`, `headers`.
+// Output: `return <expr>` produces the response body (status 200); use
+// respond(status, body) when the status/headers matter.
+
+let ledger = {
+    "pi_9001": { "id": "pi_9001", "amount": 1550, "currency": "usd", "status": "succeeded" },
+    "pi_9002": { "id": "pi_9002", "amount": 8500, "currency": "eur", "status": "pending" }
+}
+
+let entry = ledger[params.id]
+if entry == null {
+    respond(404, { "error": "payment not found", "id": params.id })
+} else {
+    return entry
+}

@@ -1,0 +1,47 @@
+// 04 - OAuth2 (Apigee) Integration Example
+// This script references the same resource abstractions (customersApi, paymentsApi)
+// as every other example, so it is environment agnostic. OAuth2 token acquisition,
+// caching and refresh happen transparently when the resource declares oauth2 auth.
+//
+// Run against the oauth2 environment:
+//   bbrun 04-oauth2-apigee.bbrun --env oauth2
+// It also runs unmodified against local (mock) or dev (bearer).
+
+let newCustomer = {
+    "id": "cus_" + randomString(8),
+    "email": "apigee@example.com",
+    "firstName": "Apigee",
+    "lastName": "Integration Tester"
+}
+
+// 1. Create a customer through the OAuth2-protected resource
+customersApi.post("/customers", newCustomer)
+assert response.status == 201
+print "Customer created via OAuth2-protected resource!"
+
+// 2. Fetch it back
+customersApi.get("/customers/${newCustomer.id}")
+assert response.status == 200
+print "Customer retrieved via OAuth2-protected resource!"
+
+// 3. Create a payment through the second OAuth2-protected resource
+let payment = {
+    "id": "pi_" + uuid(),
+    "order_id": "ord_" + randomString(4),
+    "amount": 34999,
+    "currency": "usd",
+    "status": "succeeded",
+    "created": 1736280000
+}
+
+paymentsApi.post("/payments", payment)
+assert response.status == 201
+
+// 4. Confirm the payment — paymentsApi maps to PaymentIntent, so validating
+//    the raw response maps it into our Commerce.PaymentIntent model implicitly
+//    (mapping "Stripe PaymentIntent", declared by Commerce.PaymentIntent)
+paymentsApi.get("/payments/${payment.id}")
+assert response.status == 200
+validate response.body as PaymentIntent
+
+print "OAuth2 integration flow verified against Apigee!"

@@ -1,0 +1,58 @@
+// 03 - Complete Integration Flow (external system, implicit mapping)
+//
+// paymentsApi is the EXTERNAL payments system (Stripe-shaped) we integrate with.
+// `PaymentIntent` is OUR model in the Commerce domain, and it declares the
+// "Stripe PaymentIntent" mapping in its own `mapsFrom` — DRef puts the mapping on
+// the model it imports onto, so the model IS the target. bbrun.yaml binds
+// paymentsApi to that mapping by name.
+// The gateway returns its own shape: amount in cents, lowercase currency,
+// `order_id` instead of orderId, unix timestamps. Domain + one config line is all
+// the engine needs: a single typed statement dispatches, maps AND validates.
+
+let customer = {
+    "id": "cus_" + randomString(4),
+    "email": "enterprise@strims.io",
+    "firstName": "Enterprise",
+    "lastName": "Client",
+    "createdAt": "2026-09-10T12:00:00Z",
+    "updatedAt": "2026-09-10T12:00:00Z"
+}
+
+// 1. Validate payload locally before dispatching
+validate customer as Customer
+
+// 2. Dispatch to our customer resource
+customersApi.post("/customers", customer)
+assert response.status == 201
+let createdCustomerId = customer.id
+
+// 3. Build the payment in the external system's shape
+let foreignPayment = {
+    "id": "pi_" + uuid(),
+    "order_id": "ord_" + randomString(6),
+    "amount": 125050,
+    "currency": "eur",
+    "status": "succeeded",
+    "created": 1736280000
+}
+
+// 4. One statement: dispatch, map into our PaymentIntent, validate it.
+//    No map/validate statements needed — if anything fails, this throws.
+PaymentIntent created = paymentsApi.post("/payments", foreignPayment)
+assert response.status == 201
+
+// 5. The mapped instance is OUR model's shape
+assert created.amount == 1250.5
+assert created.currency == "EUR"
+assert created.orderId == foreignPayment.order_id
+validate created as PaymentIntent
+
+// 6. Collections get the same treatment, element by element
+PaymentIntent[] payments = paymentsApi.get("/payments")
+assert payments.length == 1
+assert payments[0].status == "succeeded"
+assert payments[0] matches PaymentIntent
+
+print "Integration flow verified: external response mapped into Commerce.PaymentIntent implicitly!"
+// 7. A flow's result: the value the embedding server builds its response from
+return { "created": created, "payments": payments }

@@ -1,0 +1,21 @@
+goal "A customer buys two travel mugs and finds the order afterwards"
+
+step "Look at the product" {
+    shopApi.get("/products/P100")
+    assert response.status == 200
+    let product = response.body
+    assert product.unitPrice > 0 : "a product has a price"
+}
+
+step "Place the order" {
+    shopApi.post("/orders", { "productId": product.id, "quantity": 2 })
+    assert response.status == 201
+    let order = response.body
+    assert order.total == product.unitPrice * 2
+}
+
+step "Find it again" {
+    shopApi.get("/orders/${order.id}")
+    assert response.status == 200
+    assert response.body.status == "confirmed"
+}

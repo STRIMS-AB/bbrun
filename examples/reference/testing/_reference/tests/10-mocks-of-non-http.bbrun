@@ -1,0 +1,35 @@
+// 10 - Mocks of non-HTTP resources
+//
+// A mock can emulate more than a HTTP endpoint: `type: mock` + `mock: <kind>`
+// makes the resource a mock of that kind (sql, queue, email, file). Route
+// matching is then by dispatched operation (`op`) instead of `method`/`path`,
+// with the same response sources (data/file/expr/script) and the same
+// `when` conditions. Bound in route expressions/scripts:
+//   op    -> dispatched operation ("send", "receive", ...)
+//   args  -> the call's positional arguments
+//   body  -> shorthand for the last positional argument
+//
+// Run: bbrun examples/reference/testing/_reference/tests/10-mocks-of-non-http.bbrun -c examples/reference/testing/_reference/bbrun.yaml
+
+// send() -> expr route: the mock acknowledges the enqueue
+orderQueue.send({ "job": "invoice_1550", "amount": 1550 })
+assert response.status == 200
+assert response.body.queued == "invoice_1550"
+assert response.body.status == "scheduled"
+print "queue mock: send() acknowledged via expr route";
+
+// receive() -> data route: the mock produces a job
+let job = orderQueue.receive()
+assert job.job == "invoice_1550"
+assert job.amount == 1550
+print "queue mock: receive() served the scheduled job";
+
+// peek() -> data route: inspect without consuming
+let peeked = orderQueue.peek()
+assert peeked.amount == 1550
+
+// NOTE: unlike HTTP mocks there is no lifecycle fallback - an operation
+// without a configured route fails loudly:
+//   receive() would fail: Mock of kind 'queue' has no route for operation 'receive'
+
+print "Mocks of non-HTTP resources verified!"

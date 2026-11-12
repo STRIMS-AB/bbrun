@@ -1,0 +1,124 @@
+plugins {
+    id 'antlr'
+    id 'maven-publish'
+    id 'signing'
+}
+
+// The antlr plugin puts the whole ANTLR tool on the API of the library. Only the grammar
+// build needs it: what runs is antlr4-runtime, declared below.
+configurations.matching { it.name in ['api', 'implementation'] }.configureEach {
+    setExtendsFrom(extendsFrom.findAll { it.name != 'antlr' })
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+dependencies {
+    // DRef, the validation and mapping library, and regl, the rule engine under it. Their
+    // versions are declared once, in gradle.properties; neither is on Maven Central yet, so
+    // they come from the local Maven repository, else from libs/repo (dist/vendor.sh).
+    // verifyDrefVersion fails the build if the vendored DRef is not the declared version.
+    implementation "dev.dref:dref-validator:${drefVersion}"
+    implementation "dev.regl:regl-cli:${reglVersion}"
+
+    // ANTLR4 parser & runtime
+    antlr 'org.antlr:antlr4:4.13.2'
+    implementation 'org.antlr:antlr4-runtime:4.13.2'
+
+    // YAML & JSON configuration support
+    implementation 'org.yaml:snakeyaml:2.2'
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.54'
+
+    // iconn integration environment & resource connectors
+    implementation "dev.iconn:iconn-api:${iconnVersion}"
+    implementation "dev.iconn:iconn-core:${iconnVersion}"
+    implementation "dev.iconn:iconn-connector-http:${iconnVersion}"
+    implementation "dev.iconn:iconn-connector-email:${iconnVersion}"
+    implementation "dev.iconn:iconn-connector-database:${iconnVersion}"
+
+    // Testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+generateGrammarSource {
+    arguments += ['-visitor', '-long-messages', '-package', 'org.bbrun.parser']
+    outputDirectory = layout.buildDirectory.dir('generated-src/antlr/main/org/bbrun/parser').get().asFile
+}
+
+sourceSets.main.java.srcDir layout.buildDirectory.dir('generated-src/antlr/main')
+
+// The generated parser is part of the sources jar
+tasks.named('sourcesJar') {
+    dependsOn 'generateGrammarSource'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    // The parser is there in its package; the grammar build also lists its folder as a
+    // source root, which would put the same files at the top of the jar
+    eachFile { f ->
+        if (f.relativePath.segments.length == 1 && f.name.startsWith('BBRun') && !f.name.endsWith('.g4')) f.exclude()
+    }
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.addBooleanOption('Xdoclint:none', true)
+    options.encoding = 'UTF-8'
+}
+
+// bbrun-core on Maven Central: org.bbrun:bbrun-core. `publishMavenJavaPublicationToCentralRepository`
+// writes what Central asks for (jar, sources, javadoc, pom, their checksums, and their
+// signatures when a key is given) into build/central; dist/central.sh makes the bundle of it
+// and uploads it.
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = 'bbrun-core'
+                description = 'The bbrun scripting language: scripts that call services as black boxes, as test scenarios or as the logic of an operation. The interpreter, the resources and the engine that runs scripts inside a Java service.'
+                url = 'https://bbrun.org'
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'strims'
+                        name = 'STRIMS AB'
+                        email = 'dev@strims.com'
+                        organization = 'STRIMS AB'
+                        organizationUrl = 'https://strims.se'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/STRIMS-AB/bbrun.git'
+                    developerConnection = 'scm:git:https://github.com/STRIMS-AB/bbrun.git'
+                    url = 'https://github.com/STRIMS-AB/bbrun'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'central'
+            url = layout.buildDirectory.dir('central')
+        }
+    }
+}
+
+// Central reads the pom; Gradle's own module file would only be one more file to sign
+tasks.withType(GenerateModuleMetadata).configureEach { enabled = false }
+
+// Signed when a key is given: -PsigningKey / -PsigningPassword, or the environment
+// variables ORG_GRADLE_PROJECT_signingKey and ORG_GRADLE_PROJECT_signingPassword
+signing {
+    required = { project.hasProperty('signingKey') }
+    if (project.hasProperty('signingKey')) {
+        useInMemoryPgpKeys(project.property('signingKey'), project.findProperty('signingPassword'))
+        sign publishing.publications.mavenJava
+    }
+}

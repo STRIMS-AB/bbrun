@@ -1,0 +1,14 @@
+defaultEnvironment: local
+
+environments:
+  local:                      # nothing to start: the shop is mocked
+    resources:
+      shopApi:
+        type: mock
+
+  test:                       # the real service
+    resources:
+      shopApi:
+        baseUrl: "${SHOP_URL:-http://127.0.0.1:8080}"
+        headers:
+          X-Customer-Id: customer-alice

@@ -1,0 +1,87 @@
+allprojects {
+    group = 'org.bbrun'
+    version = '1.0.0'
+
+    repositories {
+        mavenLocal()
+        // iconn, regl and DRef as last vendored (dist/vendor.sh), for a machine that has not
+        // installed them: they are not on Maven Central yet
+        maven {
+            url = rootProject.file('libs/repo')
+            content {
+                includeGroup 'dev.iconn'
+                includeGroup 'dev.regl'
+                includeGroup 'dev.dref'
+            }
+        }
+        mavenCentral()
+    }
+}
+
+// DRef is the source of truth for domain definitions, validation and mapping, and
+// bbrun vendors its jar because it is not on Maven Central yet. A vendored jar is
+// exactly the kind of thing that silently goes stale, so the version is declared
+// once (drefVersion in gradle.properties) and checked against the version the jar
+// itself reports.
+ext.drefJar = file("libs/repo/dev/dref/dref-validator/${drefVersion}/dref-validator-${drefVersion}.jar")
+
+subprojects {
+    apply plugin: 'java'
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = 21
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+
+    tasks.register('verifyDrefVersion') {
+        group = 'verification'
+        description = 'Fails if the vendored DRef jar is not the DRef version bbrun declares.'
+
+        def expected = providers.gradleProperty('drefVersion')
+        def jarFile = rootProject.ext.drefJar
+        inputs.property('expectedVersion', expected)
+        // Read the jar on every run rather than tracking it as an input: it costs
+        // milliseconds, and a jar that is missing or wrong must be reported by this
+        // task's own message instead of Gradle's input validation.
+        outputs.upToDateWhen { false }
+
+        doLast {
+            def version = expected.get()
+            def hint = "Install it from the sibling checkout and vendor it again:\n" +
+                    "    (cd ../dref/dref-java && mvn install -DskipTests)\n" +
+                    "    dist/vendor.sh"
+            if (!jarFile.exists()) {
+                throw new GradleException(
+                        "Vendored DRef jar not found: ${jarFile}\n" +
+                        "DRef is bbrun's source of truth for validation and mapping, so it cannot be skipped.\n" +
+                        hint)
+            }
+
+            def properties = new Properties()
+            new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+                def entry = zip.getEntry('META-INF/maven/dev.dref/dref-validator/pom.properties')
+                if (entry == null) {
+                    throw new GradleException(
+                            "${jarFile.name} carries no DRef Maven metadata, so bbrun cannot tell which " +
+                            "DRef version it is. Expected META-INF/maven/dev.dref/dref-validator/pom.properties.\n" +
+                            hint)
+                }
+                zip.getInputStream(entry).withStream { properties.load(it) }
+            }
+
+            def actual = properties.getProperty('version')
+            if (actual != version) {
+                throw new GradleException(
+                        "DRef version mismatch: bbrun declares ${version} (drefVersion in gradle.properties) " +
+                        "but ${jarFile.name} was built by DRef ${actual}.\n" +
+                        "bbrun must run against the DRef it claims to, or validation and mapping drift.\n" +
+                        hint)
+            }
+        }
+    }
+
+    tasks.named('compileJava').configure { dependsOn 'verifyDrefVersion' }
+}

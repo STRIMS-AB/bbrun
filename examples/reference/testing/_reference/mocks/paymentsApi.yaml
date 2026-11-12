@@ -1,0 +1,5 @@
+# Mock routes for paymentsApi (convention: mocks/<resource-name>.yaml).
+routes:
+  - method: get
+    path: /v1/payments/{id}
+    script: payment-detail.bbrun

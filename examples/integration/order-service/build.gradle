@@ -1,0 +1,22 @@
+plugins {
+    id 'application'
+}
+
+dependencies {
+    implementation project(':bbrun-core')
+    implementation 'com.google.code.gson:gson:2.11.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'example.orders.OrderService'
+}
+
+tasks.named('run') {
+    workingDir projectDir
+}
+
+tasks.named('test') {
+    workingDir rootProject.projectDir
+}

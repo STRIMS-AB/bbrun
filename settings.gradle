@@ -1,0 +1,13 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'bbrun'
+
+include 'bbrun-core'
+include 'bbrun-cli'
+include 'order-service-example'
+project(':order-service-example').projectDir = file('examples/integration/order-service')

@@ -1,0 +1,30 @@
+# Customers API test suite: `type: mock` + the mocks/ convention
+# (mocks/<resource-name>.yaml) point the engine at this API's mock stand-in.
+version: "1.0"
+defaultEnvironment: "local"
+domain: ../../domain.json
+
+environments:
+  local:
+    resources:
+      customersApi:
+        type: mock
+
+  dev:
+    resources:
+      customersApi:
+        baseUrl: "https://customers.dev.strims.io"
+        auth:
+          type: bearer
+          token: "${DEV_CUSTOMERS_TOKEN:-dev_token_secret_123}"
+
+  oauth2:
+    resources:
+      customersApi:
+        baseUrl: "https://org-staging.apigee.net/v1"
+        auth:
+          type: oauth2
+          tokenUrl: "https://org-staging.apigee.net/oauth/token"
+          clientId: "${APIGEE_CLIENT_ID}"
+          clientSecret: "${APIGEE_CLIENT_SECRET}"
+          scope: "customers.read customers.write"

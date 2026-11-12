@@ -1,0 +1,26 @@
+// Implements POST /orders/{id}/confirmation: a side effect, no response value.
+ordersApi.get("/records/${request.path.id}")
+if response.status == 404 {
+    status(404)
+    return { "code": "ORDER_NOT_FOUND" }
+}
+if response.status != 200 {
+    status(502)
+    return { "code": "ORDER_STORAGE_UNAVAILABLE" }
+}
+Order order = response.body
+if order.customerId != context.customerId {
+    status(404)
+    return { "code": "ORDER_NOT_FOUND" }
+}
+notificationsApi.post("/messages", {
+    "orderId": order.id,
+    "customerId": context.customerId,
+    "correlationId": context.correlationId,
+    "kind": "order-confirmation"
+})
+if response.status != 202 {
+    status(502)
+    return { "code": "NOTIFICATION_UNAVAILABLE" }
+}
+// No return: 204 via host default. Dispatch completed; this is not async execution.

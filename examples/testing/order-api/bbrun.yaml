@@ -1,0 +1,12 @@
+version: "1.0"
+defaultEnvironment: test
+# One public backend, like the app sees it. No upstream resources or mappings.
+# domain.json describes the public API contract and is loaded by convention.
+environments:
+  test:
+    resources:
+      shopApi:
+        type: http
+        baseUrl: "${ORDER_API_URL:-http://127.0.0.1:8080}"
+        headers:
+          X-Customer-Id: customer-alice

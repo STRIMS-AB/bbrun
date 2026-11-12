@@ -1,0 +1,18 @@
+[
+  {
+    "id": "cus_4829",
+    "email": "sarah@example.com",
+    "firstName": "Sarah",
+    "lastName": "Connor",
+    "createdAt": "2025-01-15T09:00:00Z",
+    "updatedAt": "2025-01-15T09:00:00Z"
+  },
+  {
+    "id": "cus_7312",
+    "email": "john@example.com",
+    "firstName": "John",
+    "lastName": "Reese",
+    "createdAt": "2025-02-20T14:30:00Z",
+    "updatedAt": "2025-03-01T08:15:00Z"
+  }
+]

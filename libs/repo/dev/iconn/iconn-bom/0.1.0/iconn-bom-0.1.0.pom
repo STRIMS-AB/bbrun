@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.iconn</groupId>
+        <artifactId>iconn-parent</artifactId>
+        <version>0.1.0</version>
+    </parent>
+
+    <artifactId>iconn-bom</artifactId>
+    <packaging>pom</packaging>
+
+    <name>iconn-bom</name>
+    <description>Bill of Materials (BOM) for iconn integration dependencies</description>
+    <url>https://iconn.dev</url>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>dev.iconn</groupId>
+                <artifactId>iconn-services</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.iconn</groupId>
+                <artifactId>iconn-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.iconn</groupId>
+                <artifactId>iconn-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.iconn</groupId>
+                <artifactId>iconn-connector-http</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.iconn</groupId>
+                <artifactId>iconn-connector-email</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.iconn</groupId>
+                <artifactId>iconn-connector-database</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.iconn</groupId>
+                <artifactId>iconn-junit5</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

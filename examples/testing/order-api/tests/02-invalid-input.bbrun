@@ -1,0 +1,19 @@
+// The app must receive usable errors for incomplete or invalid forms.
+let invalidForms = [
+    {},
+    { "productId": "P100" },
+    { "productId": "P100", "quantity": 0 },
+    { "productId": "P100", "quantity": -1 }
+]
+for form in invalidForms {
+    shopApi.post("/orders", form)
+    assert response.status == 400
+    validate response.body as ApiError
+    assert response.body.code == "INVALID_ORDER"
+}
+
+// A rejected attempt must not prevent the next valid submission.
+shopApi.post("/orders", { "productId": "P100", "quantity": 1 })
+assert response.status == 201
+validate response.body as OrderResponse
+assert response.body.total == 12.5

@@ -1,0 +1,36 @@
+// Customers API test suite — coverage for ONE api (customersApi).
+//
+// Run: bbrun examples/reference/testing/customers/tests/customer-crud.bbrun -c examples/reference/testing/customers/bbrun.yaml
+
+// 1. CREATE -> POST /customers (expr route echoes the payload + generated id)
+let newCustomer = {
+    "email": "new@example.com",
+    "firstName": "New",
+    "lastName": "User"
+}
+customersApi.post("/customers", newCustomer)
+assert response.status == 201
+assert response.body.email == "new@example.com"
+assert response.body.id contains "cus_"
+let createdId = response.body.id
+print "Created customer " + createdId
+
+// 2. READ -> GET /customers/{id}: no route matches, and the POST was handled
+//    by the configured expr route — so the generic lifecycle (default) answers.
+//    This also demonstrates: unmatched requests never 404 silently, they yield
+//    the mock's default body — assert on it to catch routing mistakes early.
+let path = "/customers/" + createdId
+customersApi.get(path)
+assert response.status == 200
+assert response.body.status == "mocked"
+assert response.body.path == path
+print "Read customer by id (default lifecycle body: " + response.body.status + ")"
+
+// 3. LIST -> GET /customers (file route over the fixture)
+customersApi.get("/customers")
+assert response.status == 200
+assert response.body.length == 2
+assert response.body[0].email == "sarah@example.com"
+print "Listed customers (fixture route)"
+
+print "Customers API coverage verified!"

@@ -1,0 +1,21 @@
+// 01 - Resource Abstraction Example
+// In BBRun scripts, we only deal with declared resource abstractions.
+// Notice there are NO hardcoded URLs or hostnames.
+
+// 1. Invoke POST on resource 'customersApi'
+let newCustomer = {
+    "id": "cus_" + randomString(6),
+    "email": "tester@strims.io",
+    "firstName": "Integration",
+    "lastName": "Tester"
+}
+
+customersApi.post("/customers", newCustomer)
+
+assert response.status == 201
+print "Customer created successfully!"
+
+// 2. Fetch the created customer from the same resource
+customersApi.get("/customers/${newCustomer.id}")
+assert response.status == 200
+print "Customer retrieved via resource dispatch!"

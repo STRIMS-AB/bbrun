@@ -1,0 +1,18 @@
+# Mock routes for customersApi. Loaded automatically because the resource is
+# `type: mock` in bbrun.yaml (convention: mocks/<resource-name>.yaml).
+# Relative file/script paths are resolved against this directory.
+routes:
+  - method: get
+    path: /customers
+    file: fixtures/customers.json
+
+  - method: post
+    path: /customers
+    status: 201
+    expr: >-
+      {
+        "id": "cus_" + randomString(6),
+        "email": body.email,
+        "firstName": body.firstName,
+        "lastName": body.lastName
+      }

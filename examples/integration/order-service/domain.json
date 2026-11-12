@@ -1,0 +1,81 @@
+{
+  "$schema": "https://dref.dev/schemas/v1/domain.json",
+  "name": "order-service",
+  "version": "1.1.0",
+  "description": "The order service's own models. These describe what the service speaks; the tester project keeps its own document for the public contract.",
+  "scopes": [
+    { "name": "catalog", "description": "Products the service can sell." },
+    { "name": "orders", "description": "Order placement and order records." }
+  ],
+  "defaults": {
+    "fields": {
+      "PositiveMoney": {
+        "type": "Number",
+        "rules": [{ "type": "positive" }, { "type": "precision", "param": 2 }]
+      },
+      "CurrencyCode": {
+        "type": "String",
+        "rules": [{ "type": "uppercase" }, { "type": "enum", "param": ["USD", "EUR"] }]
+      }
+    }
+  },
+  "models": [
+    {
+      "name": "PlaceOrderRequest",
+      "scope": "orders",
+      "properties": [
+        { "name": "productId", "type": "String", "required": true, "key": true },
+        {
+          "name": "quantity",
+          "type": "Number",
+          "required": true,
+          "rules": [{ "type": "positiveInteger" }]
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "scope": "catalog",
+      "authority": "external",
+      "mapsFrom": [
+        {
+          "name": "Catalog product",
+          "provider": "Catalog Service",
+          "version": "1.1.0",
+          "description": "The provider uses its own vocabulary - sku/label/price_cents, minor units, a lowercase currency code. The currency transform is load-bearing: a model's `uppercase` constraint only rejects bad values, it does not normalise them.",
+          "fields": [
+            { "from": "sku", "to": "id" },
+            { "from": "label", "to": "name" },
+            { "from": "price_cents", "to": "unitPrice", "transform": [{ "type": "divide", "param": 100 }] },
+            { "from": "currency", "to": "currency", "transform": ["upperCase"] }
+          ]
+        }
+      ],
+      "properties": [
+        { "name": "id", "type": "String", "required": true, "key": true },
+        { "name": "name", "type": "String", "required": true, "rules": [{ "type": "notEmpty" }] },
+        { "name": "unitPrice", "type": "PositiveMoney", "required": true },
+        { "name": "currency", "type": "CurrencyCode", "required": true }
+      ]
+    },
+    {
+      "name": "Order",
+      "scope": "orders",
+      "properties": [
+        { "name": "id", "type": "String", "required": true, "key": true },
+        { "name": "customerId", "type": "String", "required": true },
+        { "name": "productId", "type": "String", "required": true },
+        { "name": "productName", "type": "String", "required": true },
+        {
+          "name": "quantity",
+          "type": "Number",
+          "required": true,
+          "rules": [{ "type": "positiveInteger" }]
+        },
+        { "name": "total", "type": "PositiveMoney", "required": true },
+        { "name": "currency", "type": "CurrencyCode", "required": true },
+        { "name": "status", "type": "String", "required": true, "rules": [{ "type": "enum", "param": ["confirmed"] }] }
+      ]
+    }
+  ]
+}

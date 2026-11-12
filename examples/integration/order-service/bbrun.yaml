@@ -1,0 +1,18 @@
+version: "1.0"
+defaultEnvironment: demo
+# domain.json is resolved next to this file. The catalog mapping is declared by
+# Product's own "mapsFrom" in that document; the resource below just names it.
+# The Java demo overrides these upstream URLs programmatically with its local stubs.
+environments:
+  demo:
+    resources:
+      catalogApi:
+        type: http
+        baseUrl: "http://127.0.0.1:9001/catalog"
+        mapping: "Catalog product"
+      ordersApi:
+        type: http
+        baseUrl: "http://127.0.0.1:9001/orders"
+      notificationsApi:
+        type: http
+        baseUrl: "http://127.0.0.1:9001/notifications"

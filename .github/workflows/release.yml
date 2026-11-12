@@ -1,0 +1,94 @@
+name: Release
+
+# Pushing a tag v1.2.3 builds the native bbrun for each platform, runs the examples with
+# each executable, and publishes a GitHub release holding the executables, their checksums
+# and the Homebrew formula of that version (to copy into STRIMS-AB/homebrew-tap).
+#
+# iconn, regl and DRef come from libs/repo (dist/vendor.sh): run it before tagging.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos-arm64
+          - os: macos-15-intel
+            platform: macos-x64
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: ubuntu-24.04-arm
+            platform: linux-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "25"
+          distribution: "graalvm-community"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build the executable and run the examples with it
+        run: dist/native.sh --check
+
+      - name: The executable is the version of the tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          SAYS="$(build/native/bbrun --version)"
+          if [ "$SAYS" != "bbrun $VERSION" ]; then
+            echo "The tag is v$VERSION but the executable says '$SAYS': set the version in bbrun-cli (Main.java) first" >&2
+            exit 1
+          fi
+
+      - name: Pack
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          tar -czf "bbrun-${VERSION}-${{ matrix.platform }}.tar.gz" -C build/native bbrun
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: bbrun-${{ matrix.platform }}
+          path: bbrun-*.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the executables
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Checksums and the Homebrew formula
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          (cd release && sha256sum bbrun-*.tar.gz > checksums.txt && cat checksums.txt)
+          dist/formula.sh "$VERSION" release/checksums.txt > release/bbrun.rb
+          cat release/bbrun.rb
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/bbrun-*.tar.gz
+            release/checksums.txt
+            release/bbrun.rb
+          generate_release_notes: true

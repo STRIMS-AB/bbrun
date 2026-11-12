@@ -1,0 +1,52 @@
+// Product CRUD against ONE api (productsApi).
+// The mock stand-in implements the generic lifecycle: post stores & 201,
+// indexed get reflects the stored item, delete returns 204.
+//
+// Run: bbrun examples/reference/testing/products/tests/product-crud.bbrun -c examples/reference/testing/products/bbrun.yaml
+
+let newProduct = {
+    "id": "prod_" + randomString(6),
+    "sku": "WIDGET-42",
+    "name": "Deluxe Widget",
+    "price": 19.99
+}
+
+// 1. CREATE -> POST /products
+productsApi.post("/products", newProduct)
+assert response.status == 201
+assert response.body.id == newProduct.id
+print "Created product " + newProduct.id
+
+// 2. READ -> GET /products/{id}
+productsApi.get("/products/${newProduct.id}")
+assert response.status == 200
+assert response.body.sku == "WIDGET-42"
+print "Read product " + newProduct.id + ": " + response.body.name
+
+// 3. LIST -> GET /products
+productsApi.get("/products")
+assert response.status == 200
+print "Listed the products collection"
+
+// 4. UPDATE -> PUT /products/{id}
+let priceUpdate = {
+    "id": newProduct.id,
+    "sku": "WIDGET-42",
+    "name": "Deluxe Widget",
+    "price": 24.99
+}
+productsApi.put("/products/${newProduct.id}", priceUpdate)
+assert response.status == 200
+
+// 5. The update must stick
+productsApi.get("/products/${newProduct.id}")
+assert response.status == 200
+assert response.body.price == 24.99
+print "Updated product price to " + response.body.price
+
+// 6. DELETE -> DELETE /products/{id}
+productsApi.delete("/products/${newProduct.id}")
+assert response.status == 204
+print "Deleted product " + newProduct.id
+
+print "Products API CRUD coverage verified!"

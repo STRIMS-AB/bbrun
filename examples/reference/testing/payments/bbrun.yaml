@@ -1,0 +1,30 @@
+# Payments API test suite. The payment-detail script route covers the
+# found / not-found cases; run the scripts under tests/ against it.
+version: "1.0"
+defaultEnvironment: "local"
+domain: ../../domain.json
+
+environments:
+  local:
+    resources:
+      paymentsApi:
+        type: mock
+
+  dev:
+    resources:
+      paymentsApi:
+        baseUrl: "https://payments.dev.strims.io"
+        auth:
+          type: bearer
+          token: "${DEV_PAYMENTS_TOKEN:-dev_token_secret_456}"
+
+  oauth2:
+    resources:
+      paymentsApi:
+        baseUrl: "https://org-staging.apigee.net/v1"
+        auth:
+          type: oauth2
+          tokenUrl: "https://org-staging.apigee.net/oauth/token"
+          clientId: "${APIGEE_CLIENT_ID}"
+          clientSecret: "${APIGEE_CLIENT_SECRET}"
+          scope: "payments.read payments.write"

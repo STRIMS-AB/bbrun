@@ -1,0 +1,45 @@
+// 07 - Loops & Conditions (for ranges, for-each over collections, break)
+//
+// Fetches a collection from the external payments system, maps it into OUR
+// PaymentIntent model with one typed statement, then iterates it with
+// `for payment in payments`, branches with `if` / `else`, and exits the loop
+// early with `break`.
+
+// 1. Seed the mocked external system (raw Stripe-shaped payloads)
+paymentsApi.post("/payments", {
+    "id": "pi_1", "order_id": "ord_1001", "amount": 1000,
+    "currency": "usd", "status": "succeeded", "created": 1736280000
+})
+paymentsApi.post("/payments", {
+    "id": "pi_2", "order_id": "ord_1002", "amount": 2000,
+    "currency": "eur", "status": "canceled", "created": 1736280000
+})
+paymentsApi.post("/payments", {
+    "id": "pi_3", "order_id": "ord_1003", "amount": 3000,
+    "currency": "usd", "status": "succeeded", "created": 1736280000
+})
+assert response.status == 201
+
+// 2. One statement: map the whole collection into our model
+PaymentIntent[] payments = paymentsApi.get("/payments")
+assert response.status == 200
+assert payments.length == 3
+
+// 3. Range loop (1..10 is inclusive)
+for i in 1..3 {
+    print "batch " + i + ": checking payment " + payments[i - 1].id
+}
+
+// 4. For-each over the mapped collection; break when a payment is canceled
+for payment in payments {
+    if payment.status == "canceled" {
+        print payment.id + " is " + payment.status + " - stopping here"
+        break
+    } else {
+        print payment.id + " OK (" + payment.currency + " - " + payment.amount + ")"
+    }
+}
+
+// 5. `break` skipped the remaining payments; `payment` still holds the canceled one
+assert payment.status == "canceled"
+print "Stopped at " + payment.id + " - script continues past the loop."

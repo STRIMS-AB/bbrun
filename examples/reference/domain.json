@@ -1,0 +1,431 @@
+{
+  "$schema": "https://dref.dev/schemas/v1/domain.json",
+  "name": "Commerce",
+  "version": "1.1.0",
+  "description": "Core e-commerce concepts: customers, product catalog, orders, line items, and payment intents.",
+  "scopes": [
+    { "name": "customers", "description": "Customer records and their contact details." },
+    { "name": "catalog", "description": "Products and their pricing." },
+    { "name": "orders", "description": "Orders and the line items they contain." },
+    { "name": "payments", "description": "Payment intents issued by external gateways." }
+  ],
+  "defaults": {
+    "formats": {
+      "date": "YYYY-MM-DD",
+      "time": "HH:mm:ss",
+      "dateTime": "YYYY-MM-DDTHH:mm:ssZ"
+    },
+    "fields": {
+      "ReferenceId": { "type": "String", "rules": [{ "type": "notEmpty" }, { "type": "trimmed" }] },
+      "CustomerRef": { "type": "ReferenceId", "rules": [{ "type": "startsWith", "param": "cus_" }] },
+      "ProductRef": { "type": "ReferenceId", "rules": [{ "type": "startsWith", "param": "prod_" }] },
+      "OrderRef": { "type": "ReferenceId", "rules": [{ "type": "startsWith", "param": "ord_" }] },
+      "CurrencyCode": {
+        "type": "String",
+        "rules": [
+          { "type": "enum", "param": ["USD", "EUR", "GBP", "CHF"] },
+          { "type": "uppercase" }
+        ]
+      },
+      "Money": { "type": "Number", "rules": [{ "type": "precision", "param": 2 }] },
+      "Quantity": {
+        "type": "Number",
+        "rules": [{ "type": "integer" }, { "type": "greaterThanOrEqual", "param": 0 }]
+      },
+      "Timestamp": { "type": "DateTime" }
+    }
+  },
+  "models": [
+    {
+      "name": "Customer",
+      "scope": "customers",
+      "authority": "client",
+      "properties": [
+        {
+          "name": "id",
+          "type": "String",
+          "required": true,
+          "key": true,
+          "description": "Customer identifier.",
+          "rules": [{ "type": "startsWith", "param": "cus_" }, { "type": "immutable" }]
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "required": true,
+          "description": "Primary contact email.",
+          "rules": [{ "type": "email" }, { "type": "lowercase" }, { "type": "trimmed" }]
+        },
+        {
+          "name": "firstName",
+          "type": "String",
+          "required": true,
+          "description": "Customer's given name.",
+          "rules": [{ "type": "notEmpty" }, { "type": "maxLength", "param": 100 }]
+        },
+        {
+          "name": "lastName",
+          "type": "String",
+          "required": true,
+          "description": "Customer's family name.",
+          "rules": [{ "type": "notEmpty" }, { "type": "maxLength", "param": 100 }]
+        },
+        {
+          "name": "phone",
+          "type": "String",
+          "required": false,
+          "description": "Optional contact phone number.",
+          "rules": [
+            {
+              "type": "pattern",
+              "param": "^\\+?[0-9]{7,15}$",
+              "description": "Legacy E.164 check; reported but not enforced on existing records.",
+              "warnOnly": true
+            },
+            { "type": "trimmed" }
+          ]
+        },
+        {
+          "name": "isActive",
+          "type": "Boolean",
+          "required": false,
+          "description": "Whether the customer is enabled."
+        },
+        {
+          "name": "createdAt",
+          "type": "Timestamp",
+          "required": true,
+          "description": "Creation timestamp.",
+          "rules": [{ "type": "immutable" }]
+        },
+        {
+          "name": "updatedAt",
+          "type": "Timestamp",
+          "required": true,
+          "description": "Last update timestamp."
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "scope": "catalog",
+      "authority": "internal",
+      "properties": [
+        {
+          "name": "id",
+          "type": "String",
+          "required": true,
+          "key": true,
+          "description": "Product identifier.",
+          "rules": [{ "type": "startsWith", "param": "prod_" }, { "type": "immutable" }]
+        },
+        {
+          "name": "sku",
+          "type": "String",
+          "required": false,
+          "description": "Stock-keeping unit code.",
+          "rules": [
+            { "type": "notEmpty" },
+            { "type": "uppercase" },
+            { "type": "pattern", "param": "^[A-Z0-9_-]+$" }
+          ]
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "required": true,
+          "description": "Display name of the product.",
+          "rules": [{ "type": "notEmpty" }, { "type": "maxLength", "param": 200 }]
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "required": false,
+          "description": "Long-form product description.",
+          "rules": [{ "type": "maxLength", "param": 5000 }]
+        },
+        {
+          "name": "price",
+          "type": "Money",
+          "required": true,
+          "description": "Unit price in the smallest meaningful unit of currency.",
+          "rules": [{ "type": "greaterThanOrEqual", "param": 0 }]
+        },
+        {
+          "name": "currency",
+          "type": "CurrencyCode",
+          "required": true,
+          "description": "ISO-4217 currency code."
+        },
+        {
+          "name": "stock",
+          "type": "Quantity",
+          "required": false,
+          "description": "Available stock quantity."
+        },
+        {
+          "name": "isActive",
+          "type": "Boolean",
+          "required": false,
+          "description": "Whether the product is sellable."
+        },
+        {
+          "name": "createdAt",
+          "type": "Timestamp",
+          "required": true,
+          "description": "Creation timestamp.",
+          "rules": [{ "type": "immutable" }]
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "scope": "orders",
+      "authority": "client",
+      "description": "A placed order. Its mapsFrom declares the upstream shape that is imported onto this model.",
+      "mapsFrom": [
+        {
+          "name": "Order Service Order",
+          "provider": "Order Service",
+          "description": "Maps an Order Service response onto Order. The provider sends the discount under coupon_code or promo_code, so both are fused into couponCode.",
+          "fields": [
+            "id",
+            { "from": "customer_id", "to": "customerId" },
+            { "from": "placed_at", "to": "createdAt", "transform": [{ "type": "formatDate", "param": "unix" }] },
+            {
+              "from": ["coupon_code", "promo_code"],
+              "to": "couponCode",
+              "transform": [{ "type": "join", "param": "" }]
+            },
+            { "from": "total_cents", "to": "totalAmount", "transform": [{ "type": "divide", "param": 100 }] },
+            { "from": "total_currency", "to": "currency", "transform": ["upperCase"] },
+            { "from": "state", "to": "status", "transform": [{ "type": "replace", "param": { "pattern": "ORDER_", "replacement": "" } }] }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "id",
+          "type": "String",
+          "required": true,
+          "key": true,
+          "description": "Order identifier.",
+          "rules": [{ "type": "startsWith", "param": "ord_" }, { "type": "immutable" }]
+        },
+        {
+          "name": "customerId",
+          "type": "CustomerRef",
+          "required": true,
+          "description": "Reference to the owning customer."
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "required": true,
+          "description": "Fulfilment state of the order.",
+          "rules": [
+            {
+              "type": "enum",
+              "param": ["pending", "paid", "shipped", "delivered", "cancelled", "refunded"]
+            }
+          ]
+        },
+        {
+          "name": "currency",
+          "type": "CurrencyCode",
+          "required": true,
+          "description": "ISO-4217 currency code for the order."
+        },
+        {
+          "name": "totalAmount",
+          "type": "Money",
+          "required": true,
+          "description": "Order grand total.",
+          "rules": [{ "type": "positive" }]
+        },
+        {
+          "name": "maxTotalAmount",
+          "type": "Money",
+          "required": false,
+          "description": "Optional per-order spending cap; when present it bounds totalAmount."
+        },
+        {
+          "name": "itemsCount",
+          "type": "Quantity",
+          "required": false,
+          "description": "Number of distinct line items."
+        },
+        {
+          "name": "couponCode",
+          "type": "String",
+          "required": false,
+          "description": "Applied discount code.",
+          "rules": [{ "type": "trimmed" }, { "type": "maxLength", "param": 50 }]
+        },
+        {
+          "name": "createdAt",
+          "type": "Timestamp",
+          "required": true,
+          "description": "Placement timestamp.",
+          "rules": [{ "type": "immutable" }]
+        },
+        {
+          "name": "updatedAt",
+          "type": "Timestamp",
+          "required": true,
+          "description": "Last state-change timestamp."
+        }
+      ]
+    },
+    {
+      "name": "OrderItem",
+      "scope": "orders",
+      "authority": "client",
+      "description": "A single line of an order. Every property is immutable, so DRef classifies it as a value model rather than an entity.",
+      "properties": [
+        {
+          "name": "orderId",
+          "type": "OrderRef",
+          "required": true,
+          "description": "Reference to the parent order.",
+          "rules": [{ "type": "immutable" }]
+        },
+        {
+          "name": "productId",
+          "type": "ProductRef",
+          "required": true,
+          "description": "Reference to the purchased product.",
+          "rules": [{ "type": "immutable" }]
+        },
+        {
+          "name": "quantity",
+          "type": "Number",
+          "required": true,
+          "description": "Purchased quantity.",
+          "rules": [{ "type": "positiveInteger" }, { "type": "immutable" }]
+        },
+        {
+          "name": "unitPrice",
+          "type": "Money",
+          "required": true,
+          "description": "Unit price as snapshotted at purchase time.",
+          "rules": [{ "type": "positive" }, { "type": "immutable" }]
+        },
+        {
+          "name": "lineTotal",
+          "type": "Money",
+          "required": true,
+          "description": "quantity * unitPrice, snapshotted.",
+          "rules": [
+            { "type": "positive" },
+            { "type": "immutable" },
+            {
+              "type": "lessThanOrEqual",
+              "param": "$maxLineTotal",
+              "description": "Line total may not exceed the per-line cap when one is declared."
+            }
+          ]
+        },
+        {
+          "name": "maxLineTotal",
+          "type": "Money",
+          "required": false,
+          "description": "Optional cap this line total is measured against.",
+          "rules": [{ "type": "immutable" }]
+        }
+      ]
+    },
+    {
+      "name": "PaymentIntent",
+      "scope": "payments",
+      "authority": "external",
+      "description": "Our PaymentIntent in the commerce domain. authority=external records that instances originate from the gateway we integrate with (its raw shape is mapped into this model by the 'Stripe PaymentIntent' mapsFrom entry below); the objects are used internally by our scripts.",
+      "mapsFrom": [
+        {
+          "name": "Stripe PaymentIntent",
+          "provider": "Stripe",
+          "version": "1.1.0",
+          "description": "Maps a Stripe PaymentIntent API object onto this model. The gateway returns its own shape: amount in cents, lowercase currency, order_id instead of orderId, and unix timestamps.",
+          "fields": [
+            "id",
+            "status",
+            { "from": "order_id", "to": "orderId" },
+            { "from": "payment_method", "to": "paymentMethodId" },
+            { "from": "amount", "transform": [{ "type": "divide", "param": 100 }] },
+            { "from": "currency", "transform": ["upperCase"] },
+            { "from": "description", "to": "failureMessage", "transform": ["trim"] },
+            { "from": "created", "to": "createdAt", "transform": [{ "type": "formatDate", "param": "unix" }] }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "id",
+          "type": "String",
+          "required": true,
+          "key": true,
+          "description": "Payment intent identifier.",
+          "rules": [{ "type": "startsWith", "param": "pi_" }, { "type": "immutable" }]
+        },
+        {
+          "name": "orderId",
+          "type": "OrderRef",
+          "required": true,
+          "description": "Reference to the order being paid."
+        },
+        {
+          "name": "amount",
+          "type": "Money",
+          "required": true,
+          "description": "Amount to charge.",
+          "rules": [{ "type": "positive" }]
+        },
+        {
+          "name": "currency",
+          "type": "CurrencyCode",
+          "required": true,
+          "description": "ISO-4217 currency code."
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "required": true,
+          "description": "Lifecycle state of the payment.",
+          "rules": [
+            {
+              "type": "enum",
+              "param": [
+                "requires_payment_method",
+                "requires_confirmation",
+                "processing",
+                "succeeded",
+                "canceled"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "paymentMethodId",
+          "type": "String",
+          "required": false,
+          "description": "Reference to the used payment method.",
+          "rules": [{ "type": "startsWith", "param": "pm_" }]
+        },
+        {
+          "name": "failureMessage",
+          "type": "String",
+          "required": false,
+          "description": "Human-readable failure reason, if any.",
+          "rules": [{ "type": "maxLength", "param": 255 }]
+        },
+        {
+          "name": "createdAt",
+          "type": "Timestamp",
+          "required": true,
+          "description": "Creation timestamp.",
+          "rules": [{ "type": "immutable" }]
+        }
+      ]
+    }
+  ]
+}

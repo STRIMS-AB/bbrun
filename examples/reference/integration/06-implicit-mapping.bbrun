@@ -1,0 +1,39 @@
+// 06 - Implicit Mapping (mapping resources)
+//
+// `PaymentIntent` is OUR model in the Commerce domain. The gateway that backs
+// paymentsApi speaks Stripe's shape: amount in cents, lowercase currency,
+// `order_id` instead of orderId, unix timestamps. The Commerce domain declares
+// that translation on the model itself, as a "Stripe PaymentIntent" entry in
+// PaymentIntent's `mapsFrom`, and bbrun.yaml binds paymentsApi to it with
+// `mapping: "Stripe PaymentIntent"`. The engine translates the raw response into
+// our model automatically — behind a plain validate, a matches, and typed
+// statements. No explicit `map` needed. The raw response stays untouched.
+
+let invoice = {
+    "id": "pi_" + uuid(),
+    "order_id": "ord_9001",
+    "amount": 4999,
+    "currency": "usd",
+    "status": "succeeded",
+    "created": 1736280000
+}
+
+// 1. Create the payment on the external system; map + validate in one statement
+PaymentIntent paymentIntent = paymentsApi.post("/payments", invoice)
+assert response.status == 201
+
+// 2. The raw body is still the external shape
+assert response.body.amount == 4999
+assert response.body.currency == "usd"
+
+// 3. The mapped instance carries OUR shape
+assert paymentIntent.amount == 49.99
+assert paymentIntent.currency == "USD"
+assert paymentIntent.orderId == "ord_9001"
+
+// 4. validate / matches also map implicitly when the compared model maps to
+//    the last external response
+validate paymentIntent as PaymentIntent
+assert paymentIntent matches PaymentIntent
+
+print "Implicit mapping verified: external response mapped into our Commerce.PaymentIntent!"

@@ -1,0 +1,48 @@
+// 08 - Mock Configuration
+//
+// A mock resource answers from configured routes: `verb + path` -> mock data.
+// Each route uses exactly one source:
+//   file   -> a JSON fixture                  (GET /customers)
+//   expr   -> an inline expression over the request (POST /customers)
+//   script -> a full BBRun handler using return/respond()  (GET /v1/payments/{id})
+// Requests that match no route fall back to the generic mock lifecycle.
+
+// 1. file route: served from fixtures/customers.json
+customersApi.get("/customers")
+assert response.status == 200
+assert response.body.length == 2
+assert response.body[0].email == "sarah@example.com"
+print "file route: GET /customers served from fixtures/customers.json"
+
+// 2. expr route: `body` is the request body, expression builds the response
+customersApi.post("/customers", {
+    "email": "new@example.com",
+    "firstName": "New",
+    "lastName": "User"
+})
+assert response.status == 201
+assert response.body.email == "new@example.com"
+assert response.body.firstName == "New"
+assert response.body.id contains "cus_"
+print "expr route: POST /customers echoed body + generated id"
+
+// 3. script route: full handler, `params` carries {id} from the path pattern
+paymentsApi.get("/v1/payments/pi_9001")
+assert response.status == 200
+assert response.body.amount == 1550
+assert response.body.status == "succeeded"
+
+paymentsApi.get("/v1/payments/pi_does_not_exist")
+assert response.status == 404
+assert response.body.error == "payment not found"
+print "script route: GET /v1/payments/{id} handled by _reference/mocks/payment-detail.bbrun"
+
+// 4. unmatched requests keep the generic lifecycle (post appends, get lists)
+paymentsApi.post("/payments", { "id": "pi_fallback", "amount": 500, "status": "created" })
+assert response.status == 201
+paymentsApi.get("/payments")
+assert response.status == 200
+assert response.body.length == 1
+print "lifecycle fallback: POST/GET /payments still works without a route"
+
+print "Mock configuration verified: file, expr, script + fallback!"

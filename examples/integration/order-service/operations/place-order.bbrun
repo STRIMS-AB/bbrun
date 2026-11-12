@@ -1,0 +1,37 @@
+// Implements POST /orders. Client body and trusted server context are distinct.
+if not (request.body matches PlaceOrderRequest) {
+    status(400)
+    return { "code": "INVALID_ORDER" }
+}
+
+catalogApi.get("/products/${request.body.productId}")
+if response.status == 404 {
+    status(404)
+    return { "code": "PRODUCT_NOT_FOUND" }
+}
+if response.status != 200 {
+    status(502)
+    return { "code": "CATALOG_UNAVAILABLE" }
+}
+Product product = response.body
+
+// Price and identity come from the catalog and server context, not the client.
+let order = {
+    "id": uuid(),
+    "customerId": context.customerId,
+    "productId": product.id,
+    "productName": product.name,
+    "quantity": request.body.quantity,
+    "total": product.unitPrice * request.body.quantity,
+    "currency": product.currency,
+    "status": "confirmed"
+}
+validate order as Order
+ordersApi.post("/records", order)
+if response.status != 201 {
+    status(502)
+    return { "code": "ORDER_STORAGE_UNAVAILABLE" }
+}
+status(201)
+header("Location", "/orders/" + order.id)
+return order

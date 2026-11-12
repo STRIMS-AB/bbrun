@@ -1,0 +1,20 @@
+routes:
+  - method: get
+    path: /products/{id}
+    expr: '{ "id": params.id, "name": "Travel mug", "unitPrice": 12.5, "currency": "EUR" }'
+
+  - method: post
+    path: /orders
+    status: 201
+    expr: >-
+      {
+        "id": "ord_" + randomString(6),
+        "productId": body.productId,
+        "quantity": body.quantity,
+        "total": 12.5 * body.quantity,
+        "status": "confirmed"
+      }
+
+  - method: get
+    path: /orders/{id}
+    expr: '{ "id": params.id, "status": "confirmed" }'

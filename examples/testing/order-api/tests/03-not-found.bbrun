@@ -1,0 +1,17 @@
+// Stale links, unavailable products, and nonexistent orders.
+shopApi.get("/products/does-not-exist")
+assert response.status == 404
+validate response.body as ApiError
+assert response.body.code == "PRODUCT_NOT_FOUND"
+
+shopApi.post("/orders", { "productId": "does-not-exist", "quantity": 1 })
+assert response.status == 404
+assert response.body.code == "PRODUCT_NOT_FOUND"
+
+shopApi.get("/orders/does-not-exist")
+assert response.status == 404
+assert response.body.code == "ORDER_NOT_FOUND"
+
+shopApi.post("/orders/does-not-exist/confirmation", {})
+assert response.status == 404
+assert response.body.code == "ORDER_NOT_FOUND"

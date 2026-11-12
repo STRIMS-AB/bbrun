@@ -1,0 +1,30 @@
+# Products API test suite. No configured routes — the suite exercises the
+# generic mock lifecycle (create/read/list/update/delete) as the stand-in API.
+version: "1.0"
+defaultEnvironment: "local"
+domain: ../../domain.json
+
+environments:
+  local:
+    resources:
+      productsApi:
+        type: mock
+
+  dev:
+    resources:
+      productsApi:
+        baseUrl: "https://products.dev.strims.io"
+        auth:
+          type: bearer
+          token: "${DEV_PRODUCTS_TOKEN:-dev_token_secret_789}"
+
+  oauth2:
+    resources:
+      productsApi:
+        baseUrl: "https://org-staging.apigee.net/v1"
+        auth:
+          type: oauth2
+          tokenUrl: "https://org-staging.apigee.net/oauth/token"
+          clientId: "${APIGEE_CLIENT_ID}"
+          clientSecret: "${APIGEE_CLIENT_SECRET}"
+          scope: "products.read products.write"

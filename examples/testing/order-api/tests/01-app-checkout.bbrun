@@ -1,0 +1,38 @@
+// Simulate an app session through ONE backend API.
+// Browse -> place an order -> open order details -> ask for a confirmation.
+shopApi.get("/products/P100")
+assert response.status == 200
+validate response.body as ProductResponse
+let product = response.body
+assert product.id == "P100"
+assert product.name == "Travel mug"
+assert product.unitPrice == 12.5
+assert product.currency == "EUR"
+
+let quantity = 2
+shopApi.post("/orders", { "productId": product.id, "quantity": quantity })
+assert response.status == 201
+validate response.body as OrderResponse
+let order = response.body
+assert order.productId == product.id
+assert order.customerId == "customer-alice"
+assert order.quantity == quantity
+assert order.total == product.unitPrice * quantity
+assert order.currency == product.currency
+assert order.status == "confirmed"
+
+// This read must find the order just created, not a generic mock placeholder.
+shopApi.get("/orders/${order.id}")
+assert response.status == 200
+validate response.body as OrderResponse
+assert response.body.id == order.id
+assert response.body.total == order.total
+
+shopApi.post("/orders/${order.id}/confirmation", {})
+assert response.status == 204
+assert response.body == null
+
+// Sending a confirmation must not alter the order.
+shopApi.get("/orders/${order.id}")
+assert response.status == 200
+assert response.body.status == "confirmed"

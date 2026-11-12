@@ -1,0 +1,12 @@
+# Mock of a queue resource (`type: mock` + `mock: queue`).
+# Route matching is by dispatched `op`; the same response sources apply,
+# and `args`/`body` carry the call arguments.
+routes:
+  - op: send
+    expr: '{ "queued": body.job, "status": "scheduled" }'
+
+  - op: receive
+    data: { "job": "invoice_1550", "amount": 1550 }
+
+  - op: peek
+    data: { "job": "invoice_1550", "amount": 1550 }
